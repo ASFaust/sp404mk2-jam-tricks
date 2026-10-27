@@ -1,0 +1,95 @@
+# Names for firmware v5.52 addresses, taken from the Tallfree project
+# (resources/repos/tallfree, MIT licence). Applied by app1/tools/ghidra_scripts/ApplySymbols.java.
+#
+# Format: ADDRESS KIND NAME [# comment]
+#   KIND f = function (created if missing), d = data label
+#   Addresses are even (Thumb bit cleared). Comments become plate comments in Ghidra.
+#   "tf:file:line" points at the Tallfree source the name comes from.
+
+# --- file system (Roland's wrappers; 0 = ok, -1 = error) ---
+800DEC60 f fs_open             # int fs_open(const char *path, int mode); returns handle. tf:engine/device.c:24
+800DEC48 f fs_read             # int fs_read(int h, void *buf, int len). tf:engine/device.c:25
+800DD9B8 f fs_write            # int fs_write(int h, const void *buf, int len). tf:engine/device.c:26
+800DEBD8 f fs_close            # int fs_close(int h). tf:engine/device.c:27
+80021710 f fs_remove           # int fs_remove(const char *path). tf:engine/device.c:39
+80011B00 f fs_mkdir            # int fs_mkdir(const char *path). tf:engine/device.c:40
+80034B0C f fs_rmdir            # int fs_rmdir(const char *path). tf:engine/device.c:41
+80034A7C f fs_stat             # int fs_stat(const char *path, void *info); info[0x1D] = attributes (0x10 = dir). tf:engine/device.c:42
+8059187A d g_sdcard_inserted   # byte, nonzero while an SD card is in. tf:engine/device.c:133
+
+# --- micro T-Kernel (firmware-side stubs; ITCM holds the kernel itself) ---
+800D31A8 f tk_cre_tsk_stub     # int (const task_record *); name at +0x14, stack at +0x1C. tf:engine/kernel.c:47
+800D31B2 f tk_sta_tsk_stub     # int (int task, int code). tf:engine/kernel.c:48
+800D30FE f tk_cre_sem_stub     # int (const sem_record *); {arg, attr, initial, max, name[8]}. tf:engine/kernel.c:49
+800D3252 f tk_wai_sem_stub     # int (int sem, int count, int timeout). tf:engine/kernel.c:50
+800D3248 f tk_sig_sem_stub     # int (int sem, int count). tf:engine/kernel.c:51
+800D2FDC f tk_del_sem_stub     # int (int sem). tf:engine/kernel.c:52
+800D3162 f tk_get_tid_stub     # int (void), the calling task's id. tf:engine/kernel.c:56
+00003406 f tk_exd_tsk          # kernel: exit and delete current task (no firmware stub). tf:engine/kernel.c:55
+000034FA f tk_chg_pri          # kernel: change task priority (no firmware stub). tf:engine/kernel.c:59
+
+# --- display drawing ---
+800EE530 f Surface_DrawString  # (surface, x, y, str, len); vtable slot 0x12C. Every on-screen string ends here. tf:engine/screen.c:4
+800F14D0 f Surface_ClearAll    # vtable slot 0x08. tf:engine/screen.c:38
+800EDEE8 f Surface_FillRect    # vtable slot 0xC0. tf:engine/screen.c:40
+800EDE10 f Surface_FrameRect   # rectangle outline, vtable slot 0xBC, four inclusive corners. tf:engine/screen.c:42
+800CE548 f Ctx_FrameRect       # (ctx, rect); adds the context origin, calls FrameRect. tf:engine/screen.c:44
+800D80E0 f DrawText            # common text wrapper. tf:engine/screen.c:274
+800D4FA0 f DrawTextCentred     # tf:engine/screen.c:275
+800EE048 f DrawTextPlain       # tf:engine/screen.c:276
+800EE778 f DrawBigText         # the big font's drawer. tf:engine/screen.c:293
+800C2558 f Page_SetTitle       # draws every page title. tf:engine/screen.c:272
+80133E70 f IconMenu_DrawIcon   # (page, x, y, selected, pic_sel, pic_unsel); page vtable slot 0x144. tf:engine/screen.c:53
+80135D00 f Picture_Draw        # base picture drawer. tf:engine/screen.c:56
+801489B8 f SystemPage_DrawRow  # (page, ctx, rect, ?, ?, selected, ?). tf:engine/screen.c:62
+80121478 f TabStrip_Draw       # (widget); tab index +0x320, count +0x328, names +0x29C, ctx +0x84. tf:engine/screen.c:68
+8014A018 f MainScreen_DrawStatusLine  # tf:image/boot.c:53
+80147F30 f EfxEdit_Draw        # XITEM_EFXEDIT drawer. tf:engine/screen.c:296
+80146260 f Effect_DrawValues   # tf:engine/screen.c:312
+80155768 f PadOps_DrawTitle    # COPY PAD, EXCHANGE PAD, COPY BANK PAD, DELETE BANK. tf:engine/screen.c:334
+80148B50 f PatternOps_Draw     # pattern screen COPY / EXCHANGE / COPY BANK. tf:engine/screen.c:345
+801518B0 f ExportPage_DrawHeading  # tf:engine/screen.c:390
+80154DC0 f FileList_Draw       # import/export file lists. tf:engine/screen.c:524
+801554E0 f FileList_FocusedRow # file list vtable slot 0x10C. tf:engine/screen.c:525
+8008C4A0 f RemainPage_DrawName # tf:engine/screen.c:527
+
+80591B48 d g_icon_draw_ctx     # display's global drawing context. tf:engine/screen.c:59
+8021D1A4 d vt_Surface_0        # surface vtables (constructors store address + 8). tf:engine/screen.c:50
+8021D340 d vt_Surface_1
+8021D4DC d vt_Surface_2
+8021D678 d vt_Surface_3
+8021E2A4 d vt_Surface_4
+8021E438 d vt_Surface_5
+8021E5D4 d vt_Surface_6
+80226E98 d vtw_MainScreen_StatusLine  # vtable word -> MainScreen_DrawStatusLine. tf:image/boot.c:52
+80226C08 d vtw_SystemPage_DrawRow     # tf:engine/screen.c:65
+80221D10 d vtw_TabStrip_Draw          # tf:engine/screen.c:73
+
+# --- pages / UI ---
+8023B4FC d g_page_factories    # 94 page handler pointers, indexed by table slot (not page id; see docs/app1/topics/ui-pages.md). tf:engine/screen.c:60
+80063B68 f UtilityPage_Handle  # page handler; message type 1 builds the page. tf:engine/screen.c:796
+80151688 f ExportPage_OnPad    # tf:engine/screen.c:871
+8012E0B8 f PadOpsPage_OnPad    # tf:engine/screen.c:871
+801350B8 f PatternScreen_OnPad # tf:engine/screen.c:196
+80CFD4E4 d g_export_page       # page 85 instance; mode at +0x1A90. tf:engine/screen.c:83
+80CFD490 d g_padops_page       # page 67 instance; mode at +0x1A90. tf:engine/screen.c:83
+
+# --- pad / bank / pattern state ---
+82E01144 d g_pick_store        # picks for export/delete; EXT SOURCE at +0x5C. Read by PickStore_Get. tf:engine/screen.c:77
+800D94D8 f PickStore_Get       # tf:engine/screen.c:77
+82E2CD08 d g_pad_store         # 0xAC bytes per pad x 160; GATE +0xE0, LOOP +0xE4, BPM SYNC +0xF0, REVERSE/pingpong +0x10C. tf:engine/screen.c:87
+800DC6B8 f PadStore_Get        # tf:engine/screen.c:88
+82E2CD1C d g_current_bank      # 0..9. tf:engine/screen.c:81
+82E2CD20 d g_current_pad       # 0..15 within bank. tf:engine/screen.c:91
+800DDA38 f Param_Get           # e.g. (0x82E009D0, 0) -> current bank. tf:engine/screen.c:82
+82DFFC88 d g_pattern_store     # mode +0x34, chosen +0x2B8, bank +0x2BC, ... tf:engine/screen.c:185
+800E26D0 f PatternStore_Get    # tf:engine/screen.c:185
+80134A98 f ExtSource_Toggle    # tf:engine/screen.c:179
+80591F60 d g_seq_state         # -> sequencer state; mode at +0 (6 = TR-REC). tf:engine/screen.c:216
+802E7430 d g_step_count        # TR-REC steps. tf:engine/screen.c:214
+802E7434 d g_step_slots        # tf:engine/screen.c:214
+802E743C d g_step_last         # tf:engine/screen.c:215
+80B683DC d g_seq_slots         # 256 bytes per fine slot. tf:engine/screen.c:211
+
+# --- audio ---
+0001C2D0 f Audio_Mixer         # ITCM; fills SAI line 3 words 0-15. tf:CLAUDE.md "Slots, measured"

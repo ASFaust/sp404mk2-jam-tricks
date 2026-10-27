@@ -1,0 +1,313 @@
+# Names for firmware v5.52 addresses found in this project (names from Tallfree are in
+# symbols_tallfree.txt). Same format; apply with ApplySymbols.java <this file>.
+# Each comment points at the docs/topics note with the details.
+
+# --- UI pages (docs/app1/topics/ui-pages.md) ---
+800D0040 f UI_SwitchPage        # acts on the page-change request in 0x8024587C (FFFE back, FFFD rebuild)
+800D6380 f UI_GetCurrentPage    # returns the page id at 0x80245880
+80245880 d g_current_page       # u16 page id (maps to a slot of g_page_factories via g_page_records)
+8024587C d g_page_request       # u16 requested page id
+801F8F74 d g_page_records       # 16 bytes per page id; word 0 points at its slot in 0x8023B4FC
+802C9DC0 d g_xitem_factories    # {name, factory} pairs for layout items
+800BB180 f Item_NotifyOwner     # (item, code): posts {2, code} to the item's owner at item+0x6C
+800D9F20 f Key_IsHeld           # (code): 1 while that button is held; bitmap at 0x80592448
+800C9788 f TopScreen_HandleKey  # the main screen's key handler, also used by page 74; REC 0x1B -> page 13, SKIP BACK 0x19 -> page 6 (looper on: 39), SHIFT+VALUE press: looper/skip-back toggle dialog
+
+# --- effect display, page 74 (docs/app1/topics/effects-timeout.md) ---
+80061760 f EfxPage_Handle       # page id 74 (slot 18)
+80101570 f EfxPage_BuildLayout  # vtable 0x8021F868 slot 0x118: XITEM_EFXEDIT(0, 0, 127, 63)
+801015E8 f EfxPage_OnKeyDown    # keys 0x13, 0x2B ignored; others to TopScreen_HandleKey
+80055128 f XItem_EfxEdit_Factory
+80147BA0 f EfxEdit_ctor         # vtable 0x802269C0; countdown at +0x1B10 = 2000
+80146598 f EfxEdit_Update       # vtable slot 0x28; the 2 s timeout (sub #0x32 at 0x801467D0)
+80146238 f EfxEdit_DrawEffect   # vtable slot 0x60
+80146E78 f EfxEdit_Open         # vtable slot 0x18
+80146FC0 f EfxEdit_OnValueTurn  # vtable slot 0x48
+802269C0 d vt_EfxEdit           # constructors store this (header at 0x802269B8)
+
+# --- parameters (docs/app1/topics/chromatic-mode.md) ---
+82E009D0 d g_param_store        # the parameter store passed to Param_Get/Param_Set (type ParamStore)
+800DED18 f Param_Set            # (store, id, value, index)
+800CC8B8 f Param_Step           # (store, id, delta, ?, index): VALUE knob steps
+800D35F0 f Param_GetRange       # (store, id, &min, &max, index)
+800C30D8 f Param_GetName        # (store, out, id, index): "Chromatic Mode: ", "SCALE:", ...
+800C5168 f Param_FormatValue    # (store, out, id, value, index); short names are inlined constants
+
+# --- chromatic mode (docs/app1/topics/chromatic-mode.md) ---
+800D63C8 f Pad_Trigger          # (?, type, pad, ...); type 0xC + chromatic: pitch from g_chrom_semis_trigger
+801120D8 f ChromPage_OnKey      # VALUE press cycles SCALE; knob moves offset by 4 (SHIFT: 1), with 0x21 held: root
+80111B38 f ChromPage_OnPadDown  # scale check: out-of-scale pads are ignored
+80111E88 f ChromPage_OnPadUp
+8008D200 f ChromPadCell_Draw    # draws "%d" = semitone of one pad cell
+801AA0A0 d g_chrom_semis_trigger  # int[16] semitone per pad (copy 1, Pad_Trigger)
+801AA0E0 d g_chrom_semis_pitch    # int[16] copy 2 (0x800F7CE0/0x800F800E -> PickStore 0x30)
+801AA120 d g_chrom_semis_page     # int[16] copy 3 (chromatic page: press, scale check, cell labels)
+80028F64 d g_chrom_semis_lights   # int[16] copy 4 (pc-relative, unattached code at 0x80028270; probably pad lights)
+801AB3B0 d g_scale_flags          # 6 pointers to 12-byte in-scale flags (Maj, Min, Dorian, Phryd., Penta M, Penta m)
+801AB4BC d g_scale_flags_lights   # same, second copy, used by the code at 0x80028270
+
+# --- voices and resampling (docs/app1/topics/chromatic-mode.md, "Widening the range") ---
+800A2C98 f Voice_SetParam       # (slot, id, value); 0x70 Stretcher.mode + period in place, 0x73 PITCH, 0x74 FINE -> rate at inner+0x160 (Q14)
+800E3F78 f Voice_RenderSetup    # recomputes rate from PITCH/FINE, picks scratch buffers, runs resampler
+00012DC0 f Resampler_Process    # ITCM; splice stretcher: linear-interp read at rate (Q14), splices to follow ratio
+00013BEC f Ring_Advance         # ITCM; (ring, n): moves read index, returns 0 instead of overtaking the writer
+0001409A f Resampler_Mono
+000140C4 f Resampler_Stereo
+00014338 f Stretch_ClampRatio   # ITCM; (ratio, s): lowers mod_depth so ratio +- depth stays within 0.1..1.9
+
+# --- time stretch / pitch shift (docs/app1/topics/time-stretch.md) ---
+00013C58 f Stretch_TransientGuard  # ITCM; level 2000 samples ahead; blocks splices around attacks (modes 1, 2)
+00013D82 f Stretch_FallbackPeriod  # ITCM; period when not enough data ahead: halves it if > 600
+00013D9A f Stretch_PeriodFromLag   # ITCM; detected lag -> splice period >= 600 (x2, x4, x8, x16)
+00013DE0 f Stretch_CorrelateStep   # ITCM; Ensemble only: one lag (400..895) of a 400-sample autocorrelation per call
+00014108 f Ring_FillStereo         # ITCM; int16 L/R -> int32 << 13 into the source rings
+00014238 f Ring_FillMono           # ITCM; int16 -> int32 << 13
+000004EC f Rand_Next               # ITCM; additive lagged-Fibonacci generator (55 words), 31-bit result
+800259E0 f Stretch_Init            # (stretcher, state, mode): resets the splice state, period 600
+80025858 f Stretch_SetXfadeTables  # (stretcher, period): equal-power tables, 15 sizes 200..1800 (used only if mode < 0)
+800231F8 f SmplCharge_Init         # "CSmplCharge::Init": voice start; picks the stretch mode, Stretch_Init
+800200E0 f Voice_Start             # from Pad_Trigger; calls SmplCharge_Init
+800241C8 f Voice_InitFromSample    # copies the sample's record into voice i (0x28820 bytes each from 0x805F8834)
+80186BC0 f SmplPrm_Set             # "CSmplPrm": pad parameter setter; id 0x6A.. at pad*0xAC + 0xE0 + (id-0x6A)*4
+800F7518 f PitchPanel_Draw         # pitch/speed panel: "BPM VALUE", or with key 0x2A held "VINYL" / "VARI"
+2023F000 d g_stretch_state         # StretchState[voice], 0x328 bytes each (OCRAM)
+20245500 d g_render_out_0          # Voice_RenderSetup output buffer set 0 (int16 L); its int32 conversion buffers follow
+20249500 d g_render_scratch_0      # set 0: two 8 KB int32 conversion buffers, free while the resampler runs (tsx.c scratch)
+2024D500 d g_render_out_1          # output buffer set 1 (int16 L)
+20251500 d g_render_scratch_1      # set 1: conversion buffers, as set 0
+802457B8 d g_stretch_enable        # byte, 1; 0 would make Resampler_Process output silence
+802457B9 d g_stretch_guard_enable  # byte, 1; enables Stretch_TransientGuard
+80245984 d g_ts_algo               # param 0x9C "TS Algo" (FA / BK-9 / HS 5B), default 1; no DSP reader found
+80248790 d g_corr_lag_step         # 1: Ensemble lag step = 5 * this samples
+802E5FD8 d g_guard_hold            # 3000 samples
+802D6CE0 d g_xfade_in_600          # int[600] equal-power (sine) fade-in, Q28; one of 15 sizes
+802E1280 d g_xfade_out_600         # int[600] matching fade-out
+800D2E2E f thunk_Resampler_Stereo  # movw/movt ip + bx: Voice_RenderSetup's only path to 0x140C5 (patch vari4-stretch)
+800D2E38 f thunk_Resampler_Mono    # same for 0x1409B
+8017DB38 f Voice_FadeOutTail       # (?, l, r, n): linear fade-out of the last <= 64 samples; used when a voice ends mid-splice
+800E5C68 f VoiceStream_Render      # voice streaming: calls Voice_RenderSetup when an output slot is free
+800E9960 f VoiceStream_Render2     # second caller of Voice_RenderSetup
+802213F4 d vt_ChromPage           # chromatic page vtable; slots 0xD8 OnKey, 0xFC OnPadDown, 0x100 OnPadUp, 0x118 build
+80111DF8 f ChromPage_BuildLayout  # vtable slot 0x118: creates the page's items
+
+# --- VARI wheel and the pitch/speed panel (docs/app1/topics/time-stretch.md) ---
+800F8190 f PitchPanel_OnWheel      # VALUE wheel on the pitch/speed panel; with SHIFT (0x2A) cycles VINYL/VARI (patched by vari4-stretch)
+80145748 f PitchPanel_StepField    # (panel, press, delta, &field): wheel without SHIFT; steps pad param 0x6F
+800D0018 f Panel_RequestRedraw     # sets +0x78 (and +0x55 if +0x94): redraw flags only, no sound
+800F9688 f PadParam_ApplyToLinked  # (page, id_a, val_a, id_b, val_b, pad): copies a param pair to the pads linked by pad param 0x6D; "Playing PAD not modified" for Ensemble
+800DD9F8 f UI_RequestRefresh       # ? sets the flags at 0x80592438 / bit 0x8000 of 0x8059245C after a parameter change
+
+# --- voices: render chain and allocation (docs/app1/topics/time-stretch.md, "Firmware contract") ---
+202AE1A0 d g_voice_slots           # 32 voice slots of 0x58 bytes; slot[0] = SmplCharge*, +0x2C type, +0x14 priority
+801541C8 f AudioTask_Dispatch      # (?, event): drains per-event voice queues (1 render, 2, 6 VoiceStream_Render2, 8)
+801543A8 f AudioTask_Dispatch2     # (?, event): same for events 0 and 1
+800E99D0 f VoiceSlot_Render        # (slot): VoiceStream_Render; on -1 frees the voice via FUN_800566C0
+800E7890 f Voice_ReadSource        # (voice, l, r, n, &tag): next source samples (loops, end -> state byte +0x14260 = 7); -1/-2 = error
+800E5E88 f Voice_ReadSourceAlt     # same for voices with +0xDC == 1 or 3
+8001F938 f VoiceChan_Alloc         # (table32, voice, &ch, &ch2, extra): takes 1/2 (or 2/4) free entries (-1) of a 32-entry table; 0 = trigger dropped
+800A1B18 f VoiceSlot_IsFree        # (slot): state word *slot[1] == 0 (1 playing, 2 Ensemble secondary); Pad_Trigger counts free slots
+
+# --- display: 1-bpp bitmaps behind the surfaces ---
+800C1CC0 f Bitmap_MarkDirty        # (bitmap, rect): clips, calls the listener at +0x38 (slot 8), grows the dirty rows +0x18..+0x20
+8007A748 f Surface1_HLine          # surface slot 0x160 (x0, y, x1): byte-wise fill in the 1-bpp buffer
+80078BB8 f Surface1_XorPixel       # surface slot 0x15C
+800F0148 f Surface_FillRows        # surface slot 0x170 (x0, y0, x1, y1): one HLine per row
+800F14F8 f Surface_Clear           # surface slot 0x150: fills the whole bitmap with a colour
+
+# --- T-Kernel (ITCM) ---
+0000DEC4 f SysTick_Handler         # vector 15; 1 ms; calls Kernel_TimerTick
+0000D96C f Kernel_TimerTick        # increments g_sys_time_ms, runs expired kernel timers, requests a dispatch
+0000DC88 f Delay_us                # busy wait on SysTick VAL (LOAD = one millisecond)
+0000E2D0 f Kernel_IdleWait         # idle: unmask, dsb, WFI (the core sleeps here: the cycle counter stops)
+202BCF20 d g_sys_time_ms           # uint64 milliseconds since boot
+20008000 d g_audio_rx_buf          # eDMA 4 receive buffer: 2 halves x 64 frames x 8 words (docs/app1/topics/tuner.md)
+202BBBFC d g_ctxtsk                # running task
+202BBC00 d g_schedtsk              # task to run next
+80245764 d g_int_nest              # interrupt nesting count
+
+# --- tasks (docs/app1/topics/cpu-meter.md); T-Kernel: smaller number = higher priority ---
+80097490 f Task_ctor               # (obj, name, priority, stack, ?, ?): Roland's task class; vtable 0x8021CFBC
+8021CFBC d vt_Task
+80046478 f SmplTasks_Create        # SMPL_TASK 6, SMPL_CHARGE_TASK 14, SMPL_FROM_INTERRUPT 6, SMPL_CHARGE_POLLING 15, SMPL_REC 10, SMPL_END_FROM_INTERRUPT 3, MIDI_SYNC 2, SMPL_PLAY_START 6
+202ACD00 d g_smpl_task             # priority 6: voice rendering requests (AudioTask_Dispatch posts here)
+202ACD70 d g_smpl_charge_task      # priority 14: loads sample data into voices; starves when rendering takes the CPU
+80044DA0 f AudioTask_Create        # AUDIO_TASK, priority 6
+202B9100 d g_audio_task
+80045F78 f PanelTask_Create        # PANEL_TASK, priority 29 (the UI); two objects share vtable 0x8021CFF8
+82E48700 d g_panel_task
+8021CFF8 d vt_PanelTask            # slot 0x20 (word 0x8021D018) = PanelTask_OnEvent
+80072CF0 f PanelTask_OnEvent       # (task, event): 0 = regular tick (keys, power average, ...), 3 pop-up, 4/5 MIDI queues
+8004BE60 f Panel_PowerAverage      # ? averages DAT_80592560 over 5000 (or 500) ticks; low value -> warning (battery voltage?)
+80004F70 f SeqClock_Tick           # ? reads the DWT cycle counter as a timestamp (6000000 / tempo): never write CYCCNT
+000047D4 f Kernel_RaiseBasepri      # BASEPRI = 0x60, returns the old value
+000047E2 f Kernel_SetBasepri        # BASEPRI = r0
+80245794 d g_idle_spin              # 0 (never written): the dispatcher calls Kernel_IdleWait (WFI) instead of spinning
+80078C70 f Surface1_SetInk          # surface slot 0x0C (colour): 0x100000F / 0x1000000, or RGB by brightness
+80078BE8 f Surface1_GetInk          # surface slot 0x10
+80078BF0 f Surface1_SetBg           # surface slot 0x14
+83FFFFC0 d g_meter_ram              # ours (patch cpu-meter): 4 words in the unused end of non-cacheable MPU region 9 (0x83FF0000..0x84000000, used up to 0x83FFBF58)
+
+# --- chromatic voices (docs/app1/topics/chromatic-mode.md, "Voice limit and pitch base") ---
+800D3FF0 f Popup_Show              # (text, duration): copies text into 0x802468D8; "MONO mode", "Playing PAD not modified"
+800C22C0 f Page_PopupTime          # (page, 0): the duration chromatic pop-ups use
+800D5E78 f Voice_Release           # (slot, trigger type): release a playing voice (marks voice +0x1439C)
+80094168 f Voice_Steal             # (slot, flag): hard stop, waits until the voice is gone
+800D60B8 f VoiceSlot_IsSecondary   # state word == 2: second slot of an Ensemble voice
+800D5D98 f VoiceSlot_HasPending    # ? voice +0x287FC > 0
+800243E0 f SmplCharge_Stop         # (voice): marks +0x1439C = 1, state byte +0x14261 = 0xFF
+8001F1F8 f Pad_ReadParams          # (pad, block): copies the pad's 0xAC-byte record (params 0x6A.. as words from +0x10)
+80BCC214 d g_voice_seq             # start sequence counter; slot +0x14 = the voice's number (smaller = older)
+80112910 d g_chrom_mode_labels     # "LEGATO mode", "POLY mode", "MONO mode": shown when REMAIN switches to next[v]
+8011291C d g_chrom_mode_next       # REMAIN: 0 MONO -> 1 LEGATO -> 2 POLY -> 0
+802496F0 d g_redraw_flags          # u16; 0xFFFF redraws everything
+800D5920 f Param_Post              # (id, value, index): posts message 0xA5; Param_Set for ids < 0x80 ends here (applied later by PARAM_TASK)
+80018400 f Msg_Post                # ? (msg): queues a message (used by Param_Post)
+8001A570 f SmplPrm_Validate        # (prm, id, value, pad): clamps a pad param before SmplPrm_Set stores it; 0x70: > 0x3F -> 0 (patched by chrom-voices)
+8018AE68 f SmplPrm_LoadProject     # ? reads pad records from the project file (byte-swapped, unchecked)
+800D7A80 f Voice_PushParam         # (ctx, pad, id, value): Voice_SetParam(slot, id, value) on the pad's first voice (all of its chromatic notes)
+
+# --- UI core: messages, pages, XPage (docs/app1/topics/custom-pages.md) ---
+8003B530 f UI_DispatchMessage     # (msg {type, a, b}): 5/6 key down/up, 7 encoder, 9 knob, ... to the current page; unhandled keys -> UI_DefaultKeyDown
+8003B160 f UI_Init                # sends message 0 to all 94 page handlers (loop hard-coded to 0x5E0 bytes), builds page 0
+8003A968 f UI_Tick                # counts g_tick_countdown down; at 0 sends the tick (message 8) to the page, reloads from g_tick_interval
+8003B120 f UI_ForwardToPage       # (msg): current page's handler, unless a pop-up has the UI
+8003A8C0 f Page_GetLevel          # (page id): byte +4 of its record (back-stack level)
+8003C758 f UI_DefaultKeyDown      # unhandled key down: EXIT -> UI_RequestBack, SHIFT+EXIT -> page 0
+800DA598 f UI_RequestPage         # (page id): g_page_request = id; UI_SwitchPage acts on it
+800D1388 f UI_RequestBack         # g_page_request = 0xFFFE (pop the back stack)
+800C15B8 f UI_RequestRebuild      # g_page_request = 0xFFFD (destroy and build the current page again)
+800C7DA0 f UI_SetTickInterval     # (ms): page tick period; XPage sets 50
+800D8B14 f operator_new           # (size)
+8024587E d g_page_request_seen    # u16: the request UI_SwitchPage is acting on (0xFFFD while rebuilding)
+805968EC d g_page_stack           # back stack: {level, page id} halfword pairs
+80592446 d g_page_stack_top       # u16 index into g_page_stack
+80592448 d g_keys_held            # bitmap, one bit per key code (Key_IsHeld)
+80592442 d g_tick_countdown       # s16
+80592444 d g_tick_interval        # s16; -1 = no tick
+800CE1D0 f XPage_ctor             # base class of the screens; vtable vt_XPage (+0), 0x80223C48 (+0x38 item container), 0x80223C64 (+0x1A38)
+800CC858 f XPage_dtor
+80136028 f XPage_DeletingDtor     # vtable slot 4: destructs and frees
+800A80A8 f XPage_HandleMsg        # vtable slot 8: message type -> virtual method (1 build, 2 destroy, 3 draw, 4 update, 5/6 key, 7 encoder, 8 tick, ...)
+80133FF8 f XPage_Open             # slot 0x10: tick 50 ms, then slots 0x114, 0x108 (0x118 build layout)
+801348F0 f XPage_Close            # slot 0x14: slot 0x11C
+80133B58 f XPage_Setup            # slot 0x108: item container, slot 0x118 (layout), 0x110
+800738A8 f XPage_StartTick        # UI_SetTickInterval(50), ...
+80073710 f XPage_KeyDown          # slot 0x18: SHIFT -> 0xD4, items, then 0xD8; defaults for EXIT, VALUE, cursor keys
+800735E8 f XPage_KeyUp            # slot 0x1C: items, then 0xDC
+800736C8 f XPage_Encoder          # slot 0x20 (index, delta): items, then 0xE0; unhandled VALUE turns scroll the items
+80073640 f XPage_Draw             # slot 0x54 (message 3): items, then 0xC8
+80073658 f XPage_Update           # slot 0x58 (message 4): items, then 0xCC (+ a debug overlay)
+800735B0 f XPage_Tick             # slot 0x5C (message 8): 0xD0(50), items
+80223AE8 d vt_XPage               # 0x158 bytes of slots; screens override 0xC8..0x11C
+
+# --- drawing contexts and fonts (docs/app1/topics/custom-pages.md) ---
+80183338 f DrawCtx_ctor           # (ctx 0xB4 bytes, rect, surface or 0 = g_display_surface)
+800CE788 f Ctx_Begin              # saves the surface state (slot 0x24) on the context's stack (16 deep)
+800CE758 f Ctx_End                # restores it (slot 0x1C)
+800CE780 f Ctx_SetInk             # (ctx, colour): surface slot 0x0C; RGB, on/off by brightness on the 1-bpp display
+800D8018 f Ctx_SetColors          # (ctx, fg, bg): surface slot 0x20
+800D80D8 f Ctx_SetFont            # (ctx, font id 0..30): surface slot 0x58
+800CE510 f Ctx_FillRect           # (ctx, rect): + origin, surface slot 0xC0
+800CE580 f Ctx_EraseRect          # (ctx, rect): fill with the background, slot 0xC4
+800CE5B8 f Ctx_DrawTextRight      # (ctx, x, y, str): right-aligned at x, '\n' starts a line (slot 0x130)
+800D08C0 f Font_Get               # (id): g_fonts[id], 0 above 30
+80249A68 d g_fonts                # 31 font pointers: name, first/last char, cell width/height (+0xC/+0xD)
+80591B40 d g_display_surface      # the screen's surface (default for DrawCtx_ctor)
+800D5730 f Rect_Width             # x1 - x0 + 1 (rects are inclusive)
+800D4DC0 f Rect_Offset            # (rect, dx, dy)
+
+# --- top screen, DJ mode, bank keys (docs/app1/topics/tuner.md) ---
+8005EDA8 f TopPage_Handle         # page id 1 (slot 84)
+8022CE5C d vt_TopScreen           # slot 0x18 KeyDown (word 0x8022CE74), 0x1C KeyUp
+801839B8 f TopScreen_KeyDown      # most keys end in TopScreen_HandleKey (patched by tuner: BANK A + B)
+80183460 f TopScreen_KeyUp
+80063930 f DjPage_Handle          # page id 31 (slot 11); TopScreen_HandleKey opens it on BANK D + BANK E
+8013C768 f DjPage_ctor            # vtable 0x80224A04
+80224A04 d vt_DjPage
+80064750 f Page93_Handle          # page id 93 (slot 36): a 0x38-byte placeholder page; host of our custom pages
+800DA720 f PadStore_Set           # (store, id, value, index); id 0 = current bank
+805925AC d g_dj_saved_bank        # bank before the BANK D/E press, restored when DJ mode opens
+8059259B d g_bank_key_last        # key code of the bank key last pressed
+8059259A d g_bank_key_index
+805925B8 d g_bank_f_to_j          # byte per bank key A..E: 1 = it shows bank F..J
+8009AAB8 f Key_LightLevel         # ? (state, key, &mode): button LED brightness, 0xFF lit while held, 0x1F dim
+
+# --- audio input (docs/app1/topics/tuner.md, "Audio input") ---
+0001CF78 f Audio_Task             # ITCM; sets eDMA 3 (TX, 4 SAI lines from 0x20000000) and 4 (RX, 0x20008000); loops: TX event -> Audio_Mixer, RX event -> Audio_RxHandler
+0001CA80 f Audio_RxHandler        # ITCM; (rx half, 0x800): copies ONE receive word (64 frames, L = high half) to g_rx_selected, peak meters, then to the recorder
+202AD0A0 d g_rx_selected          # int16 L/R x 64: the receive word the recorder uses
+8059179C d g_rx_peak_l            # u16 running peak of g_rx_selected (input meter?)
+8059179E d g_rx_peak_r
+82E0E71C d g_rec_ctrl             # recorder control object; byte +0x258 = receive word to record (unless 0x82E011A8)
+82E011A8 d g_rx_force_word1       # ? nonzero: record receive word 1
+0001BB64 f RecCtrl_GetSourceWord  # (ctrl): byte +0x258
+800E2CA8 f operator_delete        # (ptr): back to the T-Kernel memory pool 0x80245820 (operator_new's)
+800E2C68 f Heap_Alloc             # (size): pool block with a size word in front
+
+# --- screen saver (docs/app1/topics/custom-pages.md, "Screen saver") ---
+800D4960 f UI_UserActivity        # on every key/encoder event and page request: Saver_ResetTimer, Saver_Stop; 1 = the saver was showing (the key only wakes)
+800C3E58 f Saver_ResetTimer       # (timer): if enabled (+0xC), remaining (+8) = time (+4)
+800204C0 f Saver_Stop             # (saver): destroys the running saver object (+4); 1 if there was one
+800D1360 f Saver_IsShowing        # g_saver.object != 0
+80591B24 d g_saver_timer          # +4 time (ms), +8 remaining (ms; SAVER_REMAIN), +0xC enabled
+8024972C d g_saver                # +0 type (0..12), +4 the running saver object
+8024595C d g_saver_time_min       # SAVER_TIME setting, minutes (< 1 = off)
+82DFFC64 d g_display_settings     # 8 display settings (SAVER_TYPE, SAVER_TIME, SAVER_REMAIN, WALLPAPER, MAGIC_CTRL_*, TRANSPARENCY); vtable 0x8021CBA8
+8006D2A0 f DisplaySettings_Get    # (store, item 0..7): the globals behind each
+8006D038 f DisplaySettings_Format # (store, out, item, value): "%ld min" / "OFF", remaining as mm:ss.mmm
+
+# --- system settings in flash (docs/app1/topics/payload-ram.md) ---
+800469B0 f Settings_Load        # flash 0x603FF000 -> g_sys_settings (0x758 bytes), out-of-range words -> default, then save
+800DCF08 f Settings_Save        # (state): if state[1] set: erase flash 0x3FF000, program 8 pages from g_sys_settings
+8001ACB0 f Flash_EraseSector    # (FlexSPI base, flash offset): write enable, erase, polls busy; interrupts stay on
+800D5FD8 f Flash_ProgramPage    # (FlexSPI base, flash offset, 256-byte buffer)
+800E2CC0 f FLEXSPI_TransferBlocking  # NXP SDK: one IP command sequence
+800D5F68 f DCache_InvalidateByAddr   # (addr, size): DCIMVAC per 32-byte line
+83FFB400 d g_sys_settings       # 0x1D6 words, the system settings as stored in flash 0x603FF000
+83FFBB58 d g_settings_page_buf  # 256-byte staging buffer for Flash_ProgramPage
+80217820 d g_settings_ranges    # per word {default, min, max}
+833B8504 d g_settings_state     # byte 1: settings changed, Settings_Save writes them
+
+# --- Roland's LOOPER (v4.04) and key codes (docs/app1/topics/looper.md) ---
+82E0B71C d g_looper               # looper object; +0x39 byte: looper enabled (instead of skip-back); +0x101 state byte
+82E0B81D d g_looper_state         # = g_looper + 0x101: 1 armed (threshold), 2 recording, 4 full, 5/6 playing, 7 overdub armed, ...
+800D5E70 f Looper_IsOn            # (looper): byte +0x39
+800C23C8 f Looper_PostCommand     # (cmd, a, b): 16-byte entry (type 0xA4, cmd at +3) into the queue at 0x80B5DFA4, event 8 to LOOPER_TASK; 0 rec, 1 overdub, 4/8 DEL (/SHIFT), 5 COPY, 6 undo, 7 redo
+80B5DFA4 d g_looper_cmd_queue     # 128 x 16 bytes; write index 0x80592234, read index 0x80592230
+0001D634 f Looper_RecordBlock     # ITCM; from Audio_RxHandler when Looper_IsOn: 500-frame pre-roll ring (0x80BBD070/0x80BBD458), threshold start, writes L/R planes
+0001E248 f Looper_MixBlock        # ITCM; from Audio_Mixer after the 32 voices: adds the loop into the bus buffer 0x202AD3A0 (64 frames, 14 channels)
+202AD3A0 d g_mix_bus              # Audio_Mixer's bus buffer, 0xE00 bytes, cleared each block; voices and the looper add into it
+800602A0 f LooperPage_Handle      # page id 39 (slot 52); SKIP BACK opens it while Looper_IsOn
+80082368 f LooperPage_ctor
+8021D934 d vt_LooperPage
+800819C0 f LooperPage_OnKey       # slot 0xD8: REC 0x1B rec/play, 0x1C overdub, SHIFT+PATTERN SELECT undo/redo, DEL, COPY save, 0x18 "BPM from PAD/BANK"
+80081520 f LooperPage_OnPadDown   # slot 0xFC
+0001BB6A f RecCtrl_RecordBlock    # ITCM; from Audio_RxHandler (looper off): the recorder strategy at +0x254, vtable +0x34
+800D6390 f Pad_MarkRestart        # (pad): restart flag at 0x82E495F8 + pad*0x24 = 1, read by Pad_RestartVoices
+800D88B0 f Pad_RestartFlag        # (pad): that flag
+800D88C8 f Pad_ClearRestart       # (pad): flag = 0
+800D7668 f Pad_RestartVoices      # (ctx, pad): stops the pad's playing voices and Pad_Triggers them again from the start; PadStore_Set on a VARI change (bypassed by vari4-stretch)
+800DD0C0 f PickStore_Set          # (store, id, value, index): EXT SOURCE = id 0x25
+80B08CB8 d g_sample_info          # 161 sample records of 0x68 bytes: +4 pad, +8 START, +0x10 end of RAM head, +0x20 LOOP (byte offsets in the file), +0x50 RAM head data, +0x54 head bytes, +0x58 ping pong backwards (docs/app1/topics/sample-loop.md)
+800D8998 f SampleInfo_ForPad      # (pad): the pad's record in g_sample_info, or 0
+0001A41A f SrcRead_Fwd16          # ITCM; voice vtable +8 (one variant): n big-endian 16-bit frames from a RAM address, with gain
+00016F50 f Env_ApplyFwd           # ITCM; the pad's volume envelope (gain 0..10000 by source position) after a forward read
+00017196 f Env_ApplyRev           # ITCM; the same after a backward read
+000173CA f Fade_InLinear          # ITCM; (fade, l, r, n, len): linear fade-in over len samples
+8001D660 f Fade_Out32             # (fade, l, r): the 32 samples before the pointers times g_fade32
+00017B04 f Fade_Tail32            # ITCM; g_fade32 fade continued from a counter (fade +0x18)
+80B0F550 d g_fade32               # float[32] fade curve
+
+# --- SOUND GENERATOR, SHIFT + REC SETTING (docs/app1/topics/sound-generator.md) ---
+80249800 d g_sound_gen           # the generator's state (type SoundGen); Audio_Mixer renders it every block
+80007700 f SoundGen_NextSample   # (gen): one sample of the 15 waveforms (switch on +0x70), times level, 200-sample fade in/out
+0001CB84 f SoundGen_MixBlock     # ITCM; from Audio_Mixer after Looper_MixBlock: 64 frames, pans (+0x08) into g_mix_bus at bus +0x0C
+80131C48 f SoundGen_FormatValue  # (gen, out, param, value, mode): text for params 0x7A-0x82; wave names are built with mov immediates, not stored strings
+80132428 f SoundGen_NoteOnOff    # (gen, note, velocity, off, pad): from the page's pad down/up
+801326F8 f SoundGen_Start        # (gen): sets up the oscillator before the gate opens
+8015C228 f SoundGenPage_Build    # draws bg_3row_m2, "SHIFT:OTHERS", three knob items for params 0x7B/0x7E, 0x7C/0x7F, 0x7D/0x80
+8015BF90 f SoundGenPage_OnPadDown # chromatic: pad -> note via 0x801A9E60 + octave; key 0x13 toggles the gate
+8015C4B0 f SoundGenPage_OnPadUp
+0001EFB0 f sinf                  # ITCM; C library (range reduction + polynomial)
+0001E8D8 f cosf                  # ITCM; C library
+

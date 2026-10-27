@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jam Tricks</title>
+  <script>
+    (function() {
+      var saved = localStorage.getItem('theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (saved === 'dark' || (!saved && prefersDark)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <nav class="site-nav">
+    <a href="https://asfaust.github.io/">&larr; Home</a>
+    <h1>Jam Tricks</h1>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">☀</button>
+  </nav>
+
+  <main class="page">
+    <div class="lede">
+      <p>I use my SP-404MKII at jam sessions, playing along with my guitar. A few things got in
+        the way there: in chromatic mode half the pads go dark once you pick a scale, the effect
+        screen closes in the middle of a song, and I wanted to tune the guitar right on the
+        sampler. So I changed its firmware.</p>
+      <p>These are those changes, free for anyone: scale pads, chromatic voice modes, a guitar
+        tuner and a better time stretch. This page makes them to the firmware file you give it.</p>
+      <p>Everything happens in your browser. The file is not uploaded anywhere.</p>
+    </div>
+
+    <h2><span class="step">1</span>Roland’s firmware</h2>
+    <p>Download the SP-404MKII system program from Roland’s website (a zip file such as
+      <code>sp404mk2_sys_v552.zip</code>) and choose it here. The bare
+      <code>SP404MKII_APP1.bin</code> from inside it works too.</p>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".zip,.bin">
+      <strong>Choose the zip file</strong> or drop it here
+    </label>
+    <div class="status" id="fileStatus" role="status"></div>
+
+    <h2><span class="step">2</span>Patches</h2>
+    <ul class="patches" id="patches"></ul>
+
+    <h2><span class="step">3</span>Build</h2>
+    <p><button class="build" id="build" disabled>Build SP404MKII_APP1.bin</button></p>
+    <div class="status" id="buildStatus" role="status"></div>
+
+    <h2>Installing</h2>
+    <ol>
+      <li>Format an SD card as FAT32 (a fresh format avoids trouble).</li>
+      <li>Copy the built <code>SP404MKII_APP1.bin</code> to the top level of the card, with exactly
+        that name.</li>
+      <li>With the SP-404MKII off, insert the card, hold <strong>SHIFT</strong> and switch it on.</li>
+      <li>Press the <strong>VALUE</strong> knob to start the update.</li>
+      <li>Wait until the screen shows <strong>UPDATE COMPLETE!</strong>, then switch off and on
+        again. Don’t switch off before that message.</li>
+    </ol>
+    <p>To go back to Roland’s firmware, install Roland’s own <code>SP404MKII_APP1.bin</code> from
+      the zip the same way. Keep the zip for that.</p>
+
+    <h2>Good to know</h2>
+    <ul>
+      <li>Only the main program (<code>SP404MKII_APP1.bin</code>) changes. The sound chip’s
+        firmware (<code>SP404MKII_APP0.bin</code>) is never touched.</li>
+      <li>The page checks every byte it changes against what it expects to find, and builds
+        nothing if the firmware differs. For now it works with Roland’s version 5.52 only;
+        support for later versions is in progress.</li>
+      <li>Some patches store settings in your projects that an SP-404MKII without the patch
+        reads differently. Those patches say so above.</li>
+      <li>This is an independent project, not made or supported by Roland. Use it at your own
+        risk.</li>
+    </ul>
+
+    <footer class="small" id="footer"></footer>
+  </main>
+
+  <script>
+    var btn = document.getElementById('themeToggle');
+    function applyTheme() {
+      var saved = localStorage.getItem('theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var dark = saved === 'dark' || (!saved && prefersDark);
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      btn.textContent = dark ? '☾' : '☀';
+    }
+    applyTheme();
+    window.addEventListener('pageshow', applyTheme);
+    btn.addEventListener('click', function() {
+      var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      var next = isDark ? 'light' : 'dark';
+      localStorage.setItem('theme', next);
+      document.documentElement.setAttribute('data-theme', next);
+      btn.textContent = isDark ? '☀' : '☾';
+    });
+  </script>
+</body>
+</html>

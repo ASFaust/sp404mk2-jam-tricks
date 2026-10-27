@@ -1,0 +1,299 @@
+# Structs and function signatures for the Ghidra project, applied by ApplyTypes.java
+# (format at the top of that script). Add to this file whenever a field or a function's
+# parameters are understood; re-running the script is safe. Structs go in category /sp404.
+# Each block names the docs/topics note with the details.
+
+# --- XITEM_EFXEDIT: the effect display item (docs/app1/topics/effects-timeout.md) ---
+struct EfxEdit 0x1B78               # XITEM_EFXEDIT screen item; vtable 0x802269C0
+  0x000  void*  vtable
+  0x06C  void*  owner               # page that receives Item_NotifyOwner messages (queue at +0x14)
+  0x084  void*  draw_ctx            # drawing context passed to the text/picture drawers
+  0x09C  void*  vtable2             # secondary vtable 0x80226A58 (multiple inheritance)
+  0x1B10 int    countdown_ms        # 2000 (4000 on page 31) on activity, -50 per tick; closes at < 50
+  0x1B15 byte   needs_redraw
+  0x1B16 byte   reload_countdown    # set by OnValueTurn; next Update reloads countdown_ms
+  0x1B18 int    mfx_list_mode       # 0 off, 1/2/3 = MFX LIST 1-16 / 17-32 / 33-48
+  0x1B20 int    effect              # current effect, a value from the table at 0x80245D54
+  0x1B28 int    bus_state           # store value 0x276 of the current bus; 0 closes the display
+  0x1B2C int    bus_state_prev
+  0x1B30 int    open_arg            # from the open message; 1 = opened by VALUE press (with key 0x31)
+  0x1B3F byte   key24_at_open       # key 0x24 was held when opened: alternative closing rules
+  0x1B40 byte   key31_toggle        # toggled by key 0x31 when key24_at_open
+  0x1B47 byte   value_held_at_open
+end
+
+sig 80147BA0 EfxEdit * EfxEdit_ctor(EfxEdit *this)
+sig 80146598 void EfxEdit_Update(EfxEdit *this)          # vtable slot 0x28, every 50 ms tick
+sig 80146238 void EfxEdit_DrawEffect(EfxEdit *this)      # vtable slot 0x60
+sig 80146E78 void EfxEdit_Open(EfxEdit *this, void *msg) # vtable slot 0x18
+sig 80146FC0 int EfxEdit_OnValueTurn(EfxEdit *this, int knob, int delta)  # vtable slot 0x48
+sig 80146260 void Effect_DrawValues(EfxEdit *this, int index)  # one of the three parameter values
+
+# --- UI helpers (docs/app1/topics/ui-pages.md) ---
+sig 800BB180 void Item_NotifyOwner(void *item, short code)
+sig 800D6380 int UI_GetCurrentPage(void)
+sig 800D9F20 byte Key_IsHeld(uint code)
+sig 801015E8 int EfxPage_OnKeyDown(void *page, int key)
+
+# --- parameter store and chromatic mode (docs/app1/topics/chromatic-mode.md) ---
+struct ParamStore 0x120             # g_param_store (0x82E009D0); only the fields we know
+  0x02C  int    chrom_offset        # shifts the chromatic pads (knob: 4 per step, SHIFT: 1)
+  0x118  int    chrom_scale         # cached SCALE (param 0xF1): 0 Chrom, 1 Maj, 2 Min, 3 Dorian, 4 Phryd., 5 Penta M, 6 Penta m
+  0x11C  int    chrom_root          # cached NOTE (param 0xF2): root, 0-11
+end
+data 82E009D0 ParamStore
+data 801AA0A0 int[16]
+data 801AA0E0 int[16]
+data 801AA120 int[16]
+data 801AB3B0 byte*[6]
+data 801AB4BC byte*[6]
+
+sig 800DDA38 int Param_Get(ParamStore *store, int id, int index)
+sig 800DED18 void Param_Set(ParamStore *store, int id, int value, int index)
+sig 800CC8B8 void Param_Step(ParamStore *store, int id, int delta, int flags, int index)
+sig 800D35F0 void Param_GetRange(ParamStore *store, int id, int *min, int *max, int index)
+sig 800C30D8 void Param_GetName(ParamStore *store, char *out, int id, int index)
+sig 800C5168 void Param_FormatValue(ParamStore *store, char *out, int id, int value, int index)
+sig 80111B38 void ChromPage_OnPadDown(void *page, uint pad, int arg)
+sig 80111E88 void ChromPage_OnPadUp(void *page, int pad, int arg)
+sig 801120D8 int ChromPage_OnKey(void *page, int key)
+
+# --- voices (docs/app1/topics/chromatic-mode.md) ---
+sig 800A2C98 void Voice_SetParam(int *voice, int id, uint value)
+
+# --- time stretch / pitch shift (docs/app1/topics/time-stretch.md) ---
+struct StretchRing 0xA060           # source ring of one channel; header + 0x2800 samples
+  0x000  int[5] block_pos           # source position of each 0x800-sample block (returned via pos_out)
+  0x014  uint   write_idx           # filled up to here by Voice_RenderSetup
+  0x018  uint   read_block          # read_idx >> 7, set before the guard/fallback helpers run
+  0x024  uint   ideal_pos           # (left ring only) where the read should be: Q14, wraps at 0x2800 << 14
+  0x028  uint   corr_anchor         # (left ring only) start of the Ensemble correlation window (read + 1200)
+  0x038  uint   read_idx            # integer read position; Ring_Advance moves it
+  0x03C  float  elapsed             # (left ring only) running sum of ratio + modulation
+  0x040  float  mod_phase           # (left ring only) position inside the modulation cycle
+  0x044  float  elapsed2            # (left ring only) compared with StretchState.mod_switch_at
+  0x048  int    moved               # total of all Ring_Advance steps
+  0x060  int[10240] data            # int16 << 13 (full scale +-0x10000000)
+end
+
+struct StretchState 0x328           # one per voice at g_stretch_state (OCRAM 0x2023F000 + i*0x328)
+  0x000  uint   frac                # fractional read position, Q14
+  0x008  int    holdoff             # samples until the next splice is allowed (0x400 after a splice; guard adds 2000)
+  0x010  int    xfade_left          # samples left in the current crossfade
+  0x018  int    xfade_step          # Q28 gain step = 0x10000000 / (period - 1)
+  0x020  uint   guard_env           # Stretch_TransientGuard: peak level, decays x0.9999 per sample
+  0x02C  int    guard_hold          # Stretch_TransientGuard: re-arm delay (g_guard_hold)
+  0x030  int    guard_count         # Stretch_TransientGuard: samples since the level last rose (-1 = armed)
+  0x034  int    calls               # Resampler_Process calls
+  0x048  byte   splice              # 0 straight read, 1 crossfading forward (skip), 2 crossfading back (repeat)
+  0x04C  int    corr_k              # Ensemble: lag index 0..100 (lag = 400 + 5k); -1 before the first run
+  0x050  short  corr_done
+  0x054  int    period              # splice length in samples (Off 600, Backing 400, Ensemble 800 at start)
+  0x058  int    best_lag            # Ensemble: lag with the highest correlation so far
+  0x05C  int    detected_period     # Ensemble: best_lag after a full sweep (-1 = none yet)
+  0x068  int    best_corr
+  0x06C  int    corr_norm           # energy of the window (used only when 0x805968DD is set)
+  0x2A0  int    gain_out            # Q28 gain of the tap being faded out
+  0x2A4  int    gain_in             # Q28 gain of the tap being faded in
+  0x2A8  byte   jump_periods        # 1 or 2: how many periods a splice skips/repeats
+  0x2AC  int    corr_last
+  0x2B0  int    corr_last_norm
+  0x2B8  int    mod_len             # ratio modulation: cycle length in samples (from the sample BPM)
+  0x2BC  float  mod_q1              # mod_len * 0.25
+  0x2C0  float  mod_q2              # mod_len * 0.5
+  0x2C4  float  mod_q3              # mod_len * 0.75
+  0x2C8  float  mod_depth           # Stretch_ClampRatio keeps ratio +- this inside 0.1..1.9
+  0x2CC  float  mod_depth_base
+  0x2D0  int    mod_shape           # pad param 0x8A; 0 = no modulation, shapes 1..8 ((n-1) % 4 picks the curve)
+  0x2D8  double mod_slope
+  0x2E0  double mod_value
+  0x2E8  int    mod_random          # pad param 0x8C: 1/2/3 = +-7/14/21 % random depth per cycle (Rand_Next)
+  0x2EC  byte   mod_pending         # new modulation settings waiting at 0x2F0..0x320
+  0x324  int    mod_switch_at
+end
+
+struct Stretcher 0x14108            # inside the voice at +0x140 (voice word 0x50)
+  0x000  float  semis               # PITCH + FINE/100
+  0x004  float  ratio_override      # -1.0 = none
+  0x010  int*   xfade_in            # Stretch_SetXfadeTables (used only when mode < 0)
+  0x014  int*   xfade_out
+  0x018  int    default_period      # 600
+  0x01C  int    mode                # VARI: 0 Off, 1 Backing, 2 Ensemble (pad param 0xF6 = bits 1-2 of 0x70)
+  0x020  uint   rate_q14            # pitch: source samples per output sample, Q14
+  0x024  uint   ratio_q14           # stretch ratio as Q14 (display/copy)
+  0x040  StretchRing ring_l
+  0xA0A0 StretchRing ring_r
+  0x14100 StretchState* state
+  0x14104 float ratio               # time ratio: output advances the ideal position by this per sample
+end
+
+data 2023F000 StretchState
+
+sig 00012DC0 int Resampler_Process(Stretcher *s, StretchState *st, short *out_l, short *out_r, int n, int *pos_out, int stereo)
+sig 0001409A int Resampler_Mono(Stretcher *s, short *out, int n, int *pos_out)
+sig 000140C4 int Resampler_Stereo(Stretcher *s, short *out_l, short *out_r, int n, int *pos_out)
+sig 00013BEC int Ring_Advance(StretchRing *ring, int n)
+sig 00013C58 bool Stretch_TransientGuard(Stretcher *s, StretchState *st)
+sig 00013D82 int Stretch_FallbackPeriod(Stretcher *s, int period)
+sig 00013D9A int Stretch_PeriodFromLag(Stretcher *s, int lag)
+sig 00013DE0 void Stretch_CorrelateStep(Stretcher *s, StretchState *st)
+sig 00014338 void Stretch_ClampRatio(float ratio, Stretcher *s)
+sig 00014108 void Ring_FillStereo(int *dst_l, int *dst_r, short *src_l, short *src_r, int n)
+sig 00014238 void Ring_FillMono(int *dst, short *src, int n)
+sig 800259E0 void Stretch_Init(Stretcher *s, StretchState *st, int mode)
+sig 80025858 void Stretch_SetXfadeTables(Stretcher *s, int period)
+
+# --- display: 1-bpp bitmap behind every surface (surface + 4) ---
+struct Bitmap1 0x3C
+  0x004  byte*  pixels              # 1 bit per pixel, MSB = leftmost
+  0x008  short  width
+  0x00A  short  height
+  0x00C  short  stride              # bytes per row
+  0x014  int    dirty_x0
+  0x018  int    dirty_y0
+  0x01C  int    dirty_x1
+  0x020  int    dirty_y1
+  0x024  int    clip_x0
+  0x028  int    clip_y0
+  0x02C  int    clip_x1
+  0x030  int    clip_y1
+  0x034  byte   dirty
+  0x038  void*  listener            # object with vtable; slot 8 (x0, y0, x1, y1) on every dirty rect
+end
+
+sig 800C1CC0 void Bitmap_MarkDirty(Bitmap1 *bm, int *rect)
+sig 8001F938 bool VoiceChan_Alloc(int *table, void *voice, uint *ch, int *ch2, int extra)
+sig 800F9688 void PadParam_ApplyToLinked(void *page, short id_a, int val_a, short id_b, int val_b, uint pad)
+sig 800E99D0 void VoiceSlot_Render(int *slot)
+
+# --- UI pages and drawing (docs/app1/topics/custom-pages.md) ---
+struct UIMsg 0x8                    # message to a page handler
+  0x000  short  type                # 0 init, 1 build, 2 destroy, 3 draw, 4 update, 5/6 key down/up, 7 encoder, 8 tick, 9 knob
+  0x002  short  a                   # key code, encoder or knob index
+  0x004  short  b                   # encoder delta, knob value
+end
+
+struct PageRecord 0x10              # g_page_records[page id]
+  0x000  void*  handler_slot        # points at a word holding the handler (normally in g_page_factories)
+  0x004  byte   level               # back-stack level (top screen 1, DJ 0x0A, most 0x19)
+  0x005  byte   unknown5
+  0x008  int    flags_a             # copied to 0x80592460
+  0x00C  int    redraw_mask         # | 0xD000 -> 0x80592464, ANDed with the UI request bits
+end
+
+data 801F8F74 PageRecord[94]
+
+struct DrawCtx 0xB4
+  0x000  void*  surface
+  0x014  int    origin_x
+  0x018  int    origin_y
+  0x0A4  short  saved_depth         # Ctx_Begin/Ctx_End stack (16 entries of 8 bytes from +0x24)
+end
+
+struct XPageVtbl 0x158              # vt_XPage; screens override 0xC8..0x11C
+  0x000  void*  dtor
+  0x004  void*  deleting_dtor
+  0x008  void*  handle_msg          # XPage_HandleMsg
+  0x00C  void*  init
+  0x010  void*  open                # message 1
+  0x014  void*  close               # message 2
+  0x018  void*  key_down_raw        # message 5 (top screen overrides this one)
+  0x01C  void*  key_up_raw          # message 6
+  0x020  void*  encoder_raw         # message 7
+  0x054  void*  draw_raw            # message 3
+  0x058  void*  update_raw          # message 4
+  0x05C  void*  tick_raw            # message 8
+  0x060  void*  knob_raw            # message 9
+  0x0C8  void*  draw                # after the items drew
+  0x0CC  void*  update
+  0x0D0  void*  tick                # (this, ms)
+  0x0D4  void*  shift               # (this, held)
+  0x0D8  void*  key_down            # (this, key) -> 1 if handled
+  0x0DC  void*  key_up
+  0x0E0  void*  encoder             # (this, index, delta) -> 1 if handled
+  0x0E4  void*  knob
+  0x0FC  void*  pad_down
+  0x100  void*  pad_up
+  0x108  void*  setup
+  0x114  void*  on_open
+  0x118  void*  build_layout        # creates the XITEM_* items
+  0x11C  void*  on_close
+end
+
+struct XPage 0x1A6C
+  0x000  XPageVtbl* vtbl
+  0x008  byte   built
+  0x014  int[4] rect                # 0, 0, 127, 63
+  0x034  DrawCtx* ctx               # created on message 1
+  0x038  void*  items               # item container (vtable 0x80223C48)
+  0x040  int    focus
+  0x1A38 void*  vtbl3
+end
+
+data 80223AE8 XPageVtbl
+
+sig 800CE1D0 XPage * XPage_ctor(XPage *this)
+sig 800A80A8 int XPage_HandleMsg(XPage *this, UIMsg *msg)
+sig 80073710 int XPage_KeyDown(XPage *this, int key)
+sig 800735E8 int XPage_KeyUp(XPage *this, int key)
+sig 800736C8 int XPage_Encoder(XPage *this, int index, int delta)
+sig 80073640 void XPage_Draw(XPage *this)
+sig 80073658 void XPage_Update(XPage *this)
+sig 800735B0 void XPage_Tick(XPage *this)
+sig 80133FF8 void XPage_Open(XPage *this)
+sig 801348F0 void XPage_Close(XPage *this)
+sig 801839B8 int TopScreen_KeyDown(XPage *this, int key)
+sig 8003B530 int UI_DispatchMessage(UIMsg *msg)
+sig 8003C758 void UI_DefaultKeyDown(UIMsg *msg)
+sig 800DA598 void UI_RequestPage(int page)
+sig 800D1388 int UI_RequestBack(void)
+sig 800C15B8 void UI_RequestRebuild(void)
+sig 800C7DA0 void UI_SetTickInterval(int ms)
+sig 800D8B14 void * operator_new(uint size)
+sig 80183338 DrawCtx * DrawCtx_ctor(DrawCtx *ctx, int *rect, void *surface)
+sig 800CE788 void Ctx_Begin(DrawCtx *ctx)
+sig 800CE758 void Ctx_End(DrawCtx *ctx)
+sig 800CE780 void Ctx_SetInk(DrawCtx *ctx, uint rgb)
+sig 800D8018 void Ctx_SetColors(DrawCtx *ctx, uint fg, uint bg)
+sig 800D80D8 void Ctx_SetFont(DrawCtx *ctx, int font)
+sig 800CE510 void Ctx_FillRect(DrawCtx *ctx, int *rect)
+sig 800CE580 void Ctx_EraseRect(DrawCtx *ctx, int *rect)
+sig 800CE548 void Ctx_FrameRect(DrawCtx *ctx, int *rect)
+sig 800CE5B8 void Ctx_DrawTextRight(DrawCtx *ctx, short x, short y, char *s)
+sig 800D80E0 int DrawText(DrawCtx *ctx, short x, short y, char *s)
+sig 800D4FA0 void DrawTextCentred(DrawCtx *ctx, short cx, short y, char *s)
+sig 800DA720 void PadStore_Set(void *store, int id, int value, int index)
+
+# --- SOUND GENERATOR (docs/app1/topics/sound-generator.md) ---
+struct SoundGen 0x1A8                # g_sound_gen (0x80249800); only the fields we know
+  0x000  byte   gate                # 1 while sounding
+  0x001  byte   releasing           # 1 = fade out over 200 samples
+  0x008  int    pan                 # -50..50; +-51 = hard left/right (param 0x80)
+  0x00C  int    bus                 # g_mix_bus channel pair it adds into
+  0x018  double phase               # 0..1 turns (non-sine waves)
+  0x020  double phase_inc
+  0x030  double phase_rad           # radians (Sine*/Cos*, types 0-5)
+  0x038  double phase_rad_inc
+  0x040  double cycle_rand          # new random value each cycle
+  0x048  int    width               # pulse width / Tri2 mix, 50 default, 100 for noise (param 0x7F)
+  0x04C  int    fade                # 0..200 sample fade counter
+  0x050  float  pink0               # Noise2 filter states
+  0x054  float  pink1
+  0x058  float  pink2
+  0x05C  int    note                # f = fine/10 * 2^((note-33)/12) (param 0x7C)
+  0x060  int    fine
+  0x070  byte   wave                # 0 Sine 1 Sine1 2 Sine2 3 Cos 4 Cos1 5 Cos2 6 Saw 7 Saw+ 8 Saw2 9 Tri 10 Tri2 11 Pulse 12 Pulse+ 13 Noise1 14 Noise2 (param 0x7B)
+  0x071  byte   wave_pending        # copied to wave at the end of a fade
+  0x074  int    level               # current, steps toward level_target by 1 per sample
+  0x180  int    time                # param 0x7E ("sec." / "period")
+  0x198  int    level_target
+  0x1A0  int    last_note
+  0x1A4  byte   last_velocity
+end
+data 80249800 SoundGen
+sig 80007700 int SoundGen_NextSample(SoundGen *gen)
+sig 0001CB84 void SoundGen_MixBlock(SoundGen *gen, int *bus, int frames, int stride)
+sig 80131C48 void SoundGen_FormatValue(SoundGen *gen, char *out, int param, int value, int mode)
+sig 80132428 void SoundGen_NoteOnOff(SoundGen *gen, int note, int velocity, int off, int pad)
+sig 801326F8 void SoundGen_Start(SoundGen *gen)
+

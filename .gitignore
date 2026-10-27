@@ -1,0 +1,14 @@
+# Locally supplied firmware and generated analysis/build artifacts
+resources/
+app1/build/
+app1/ghidra/
+app1/proto/stretch/work/
+app1/proto/stretch/qemu/clip.h
+__pycache__/
+*.pyc
+*.bin
+*.elf
+*.o
+*.so
+*.zip
+.venv/
