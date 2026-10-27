@@ -132,7 +132,7 @@ export function applyPatches(original, data, ids) {
   const steps = [];
   let img = original;
   if (patches.some(p => p.payload)) {
-    const payload = fromBase64(data.payload.base64);
+    const payload = data.payload.bytes || fromBase64(data.payload.base64);
     const offset = data.payload.offset;
     if (original.length > offset) throw new Error('This firmware is larger than expected; is it already patched?');
     img = new Uint8Array(offset + payload.length).fill(0xFF);
@@ -157,4 +157,262 @@ export function applyPatches(original, data, ids) {
     applied.set(c.offset, c.new);
   }
   return img;
+}
+
+// --- other versions ----------------------------------------------------------------------
+//
+// A firmware patches.json doesn't list by SHA-256: find every address the patches and the
+// payload use by the rules export_web.py derived from v5.52 (app1/tools/anchors.py), then build
+// the same kind of change lists as patches.json has for v5.52. A patch is offered only if all
+// its addresses are found and all its original bytes are as expected.
+// Not used by the page yet: other versions also need the RAM checks in web-patcher.md.
+
+const u16 = (b, o) => b[o] | b[o + 1] << 8;
+const u32 = (b, o) => (b[o] | b[o + 1] << 8 | b[o + 2] << 16 | b[o + 3] << 24) >>> 0;
+const half = v => [v & 0xFF, v >> 8 & 0xFF];
+const word = v => [v & 0xFF, v >>> 8 & 0xFF, v >>> 16 & 0xFF, v >>> 24];
+const addrHex = v => '0x' + (v >>> 0).toString(16).padStart(8, '0');
+
+// The scatter-load table: what __scatterload copies where at start-up
+function scatterTable(img, flash) {
+  // __scatterload: 'adr r0, rel; ldm r0, {r10, r11}; add r10, r0; add r11, r0'
+  const hits = search(img, compile('??a090e8000c82448344'), 2);
+  if (hits.length !== 1) throw new Error('The start-up code (__scatterload) was not found.');
+  const rel = ((hits[0] + 4) & ~3) + img[hits[0]] * 4;
+  const start = rel + u32(img, rel), end = rel + u32(img, rel + 4);
+  if (end <= start || (end - start) % 16 || end > img.length) throw new Error('The scatter-load table is damaged.');
+  const entries = [];
+  for (let o = start; o < end; o += 16) {
+    entries.push({ src: u32(img, o), dst: u32(img, o + 4), size: u32(img, o + 8), handler: u32(img, o + 12) });
+  }
+  const code = entries.find(e => e.dst === 0x80000000);
+  if (!code) throw new Error('The main code region was not found.');
+  const regions = entries.filter(e => e.handler === code.handler && e.src >= flash)
+    .map(e => ({ rt: e.dst, fo: e.src - flash, size: e.size }));
+  return { rel, start, end, entries, copy: code.handler, regions };
+}
+
+function toFile(regions, addr) {
+  const r = regions.find(r => addr >= r.rt && addr < r.rt + r.size);
+  return r ? addr - r.rt + r.fo : null;
+}
+
+function toRuntime(regions, off) {
+  const r = regions.find(r => off >= r.fo && off < r.fo + r.size);
+  return r ? off - r.fo + r.rt : null;
+}
+
+// 'a1b2??' -> {bytes, fixed}
+function compile(text) {
+  const n = text.length / 2, bytes = new Uint8Array(n), fixed = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    const h = text.substr(2 * i, 2);
+    if (h !== '??') { bytes[i] = parseInt(h, 16); fixed[i] = 1; }
+  }
+  return { bytes, fixed };
+}
+
+// Start offsets of up to `limit` matches
+function search(img, pat, limit) {
+  const { bytes, fixed } = pat;
+  let key = -1;                                  // the rarest required byte
+  const counts = byteCounts(img);
+  for (let i = 0; i < bytes.length; i++) {
+    if (fixed[i] && (key < 0 || counts[bytes[i]] < counts[bytes[key]])) key = i;
+  }
+  const out = [];
+  for (let p = img.indexOf(bytes[key], key); p >= 0; p = img.indexOf(bytes[key], p + 1)) {
+    const s = p - key;
+    if (s + bytes.length > img.length) break;
+    let ok = true;
+    for (let i = 0; i < bytes.length; i++) {
+      if (fixed[i] && img[s + i] !== bytes[i]) { ok = false; break; }
+    }
+    if (ok && out.push(s) >= limit) break;
+  }
+  return out;
+}
+
+const countCache = new WeakMap();
+function byteCounts(img) {
+  let c = countCache.get(img);
+  if (!c) {
+    c = new Uint32Array(256);
+    for (let i = 0; i < img.length; i++) c[img[i]]++;
+    countCache.set(img, c);
+  }
+  return c;
+}
+
+const movwImm = (h1, h2) => (h1 & 0xF) << 12 | (h1 >> 10 & 1) << 11 | (h2 >> 12 & 7) << 8 | (h2 & 0xFF);
+
+function blTarget(h1, h2, pc) {
+  const s = h1 >> 10 & 1, i1 = 1 ^ (h2 >> 13 & 1) ^ s, i2 = 1 ^ (h2 >> 11 & 1) ^ s;
+  const imm = s << 24 | i1 << 23 | i2 << 22 | (h1 & 0x3FF) << 12 | (h2 & 0x7FF) << 1;
+  return pc + 4 + imm - (s ? 1 << 25 : 0);
+}
+
+// The address one 'find' pattern gives at match offset s (anchors.py found_value), or null
+function foundValue(img, regions, c, s) {
+  const o = s + c.k;
+  let v;
+  if (c.how === 'at') {
+    v = toRuntime(regions, o);
+    if (v === null) return null;
+  } else if (c.how === 'word') {
+    v = u32(img, o);
+  } else if (c.how === 'bl') {
+    const h1 = u16(img, o), h2 = u16(img, o + 2), pc = toRuntime(regions, o);
+    if ((h1 & 0xF800) !== 0xF000 || (h2 & 0xD000) !== 0xD000 || pc === null) return null;
+    v = blTarget(h1, h2, pc);
+  } else {
+    const t = s + c.k2;
+    const w1 = u16(img, o), w2 = u16(img, o + 2), t1 = u16(img, t), t2 = u16(img, t + 2);
+    if ((w1 & 0xFBF0) !== 0xF240 || (t1 & 0xFBF0) !== 0xF2C0 || (w2 >> 8 & 0xF) !== (t2 >> 8 & 0xF)) return null;
+    v = movwImm(t1, t2) * 0x10000 + movwImm(w1, w2);
+  }
+  return (v + c.add) >>> 0;
+}
+
+// {name: address} for every anchor found, {name: why not} for the others
+function findAnchors(img, regions, rules) {
+  const found = {}, missing = {};
+  for (const r of rules) {
+    const base = r.from ?? r.load ?? r.wordof;
+    if (base !== undefined && !(base in found)) { missing[r.name] = `needs ${base}`; continue; }
+    if (r.from !== undefined) {
+      found[r.name] = (found[base] + r.add) >>> 0;
+    } else if (r.load !== undefined) {
+      const o = toFile(regions, found[base]);
+      if (o === null) missing[r.name] = `${base} is not in the image`;
+      else found[r.name] = u32(img, o);
+    } else if (r.wordof !== undefined) {
+      const want = (found[base] + (r.add || 0)) >>> 0, hits = [];
+      for (const g of regions) {
+        for (let o = g.fo; o + 4 <= g.fo + g.size; o += 4) if (u32(img, o) === want) hits.push(o - g.fo + g.rt);
+      }
+      if (hits.length === 1) found[r.name] = hits[0];
+      else missing[r.name] = `${hits.length} words hold ${addrHex(want)}`;
+    } else {
+      const values = new Set();
+      for (const c of r.find) {
+        const hits = search(img, compile(c.p), 2);
+        if (hits.length !== 1) continue;
+        const v = foundValue(img, regions, c, hits[0]);
+        values.add(v === null ? 'invalid' : v);
+      }
+      if (values.size === 1 && !values.has('invalid')) found[r.name] = [...values][0];
+      else missing[r.name] = values.size ? 'its patterns disagree' : 'no pattern matches';
+    }
+  }
+  return { found, missing };
+}
+
+function movwMovt(top, rd, imm16) {
+  const h1 = (top ? 0xF2C0 : 0xF240) | (imm16 >> 11 & 1) << 10 | imm16 >> 12;
+  return [...half(h1), ...half((imm16 >> 8 & 7) << 12 | rd << 8 | imm16 & 0xFF)];
+}
+
+// A template's parts at runtime address `here` (anchors.py encode): bytes, null for '??'
+function encode(parts, found, here) {
+  const value = e => {
+    if (typeof e === 'number') return e;
+    const base = e[0] === '@' ? here : found[e[0]];
+    if (base === undefined) throw new Error(`${e[0]} was not found`);
+    return (base + e[1]) >>> 0;
+  };
+  const out = [];
+  for (const part of parts) {
+    const [kind, arg] = Object.entries(part)[0];
+    const pos = here + out.length;
+    if (kind === 'hex') {
+      for (let i = 0; i < arg.length; i += 2) out.push(arg.substr(i, 2) === '??' ? null : parseInt(arg.substr(i, 2), 16));
+    } else if (kind === 'word') {
+      out.push(...word(value(arg)));
+    } else if (kind === 'mov32') {
+      const v = value(arg[1]);
+      out.push(...movwMovt(false, arg[0], v & 0xFFFF), ...movwMovt(true, arg[0], v >>> 16));
+    } else if (kind === 'tbh') {
+      const d = value(arg[0]) - value(arg[1]);
+      if (d % 2 || d < 0 || d >= 0x20000) throw new Error(`a switch entry can't reach ${d} bytes`);
+      out.push(...half(d / 2));
+    } else if (kind === 'ldrpc') {
+      const target = value(arg), imm = target - (((pos + 4) & ~3) >>> 0);
+      if (target % 4 || imm <= -0x1000 || imm >= 0x1000) throw new Error(`'ldr.w pc' at ${addrHex(pos)} can't reach ${addrHex(target)}`);
+      out.push(...half(imm >= 0 ? 0xF8DF : 0xF85F), ...half(0xF000 | Math.abs(imm)));
+    } else {
+      throw new Error(`unknown template part ${kind}`);
+    }
+  }
+  return out;
+}
+
+// The start-up change for a payload of `size` bytes: the scatter-load table copied with one
+// more entry (make_image.py add_payload_copy)
+function payloadSetup(img, table, data, size) {
+  const r = data.resolve, at = r.scatter_table, flash = r.flash;
+  const old = img.subarray(table.start, table.end);
+  const added = [...word(flash + data.payload.offset), ...word(r.payload_ram), ...word(size), ...word(table.copy)];
+  const rel = table.rel;
+  if (img.length > at || at + old.length + 16 > data.payload.offset) throw new Error('No free flash for the start-up table.');
+  const relOld = img.subarray(rel, rel + 8);
+  const relNew = [...word(at - rel), ...word(at + old.length + 16 - rel)];
+  return [
+    { offset: rel, old: hex(relOld), new: hex(relNew), why: 'start-up: copy the payload to SDRAM' },
+    { offset: at, old: 'ff'.repeat(old.length + 16), new: hex(old) + hex(added), why: 'start-up: copy the payload to SDRAM' },
+  ];
+}
+
+// For a firmware not listed by hash: {plan (use like patches.json with applyPatches), patches:
+// [{id, name, ok, problems}], anchors: {found, missing}}
+export function resolve(original, data) {
+  const r = data.resolve;
+  const table = scatterTable(original, r.flash);
+  const payloadBytes = fromBase64(data.payload.base64);
+  const regions = [...table.regions, { rt: r.payload_ram, fo: data.payload.offset, size: payloadBytes.length }];
+  const anchors = findAnchors(original, regions, r.anchors);
+  const { found, missing } = anchors;
+
+  // The payload with this version's addresses in its import table (imports.S)
+  const imp = data.payload.imports;
+  if (u32(payloadBytes, imp) !== 0x31504D49 || u32(payloadBytes, imp + 4) !== r.imports.length) {
+    throw new Error('The payload\'s import table does not match the manifest.');
+  }
+  r.imports.forEach((name, i) => payloadBytes.set(word(found[name] ?? 0), imp + 8 + 4 * i));
+
+  // Padded like applyPatches pads it, so payload addresses can be checked too
+  const padded = new Uint8Array(data.payload.offset + payloadBytes.length).fill(0xFF);
+  padded.set(original, 0);
+  padded.set(payloadBytes, data.payload.offset);
+
+  const report = [], patches = [];
+  for (const p of data.patches) {
+    const problems = p.imports.filter(n => !(n in found)).map(n => `${n}: ${missing[n] || 'not found'}`);
+    const changes = [];
+    for (const t of p.relocatable) {
+      try {
+        const at = encode([{ word: t.at }], found, 0).reduce((v, b, i) => v + b * 256 ** i, 0);
+        const off = toFile(regions, at);
+        if (off === null) throw new Error(`${addrHex(at)} is not in the image`);
+        const old = encode(t.old, found, at), now = encode(t.new, found, at);
+        if (old.length !== now.length) throw new Error('old and new bytes differ in length');
+        const have = padded.subarray(off, off + old.length);
+        if (old.some((b, i) => b !== null && b !== have[i])) {
+          throw new Error(`at ${addrHex(at)} the firmware has ${hex(have)}`);
+        }
+        changes.push({ offset: off, old: hex(have), new: hex(now), why: t.why });
+      } catch (e) {
+        problems.push(`${t.why}: ${e.message}`);
+      }
+    }
+    report.push({ id: p.id, name: p.name, ok: !problems.length, problems });
+    if (!problems.length) patches.push({ ...p, changes });
+  }
+  const plan = {
+    firmware: [],
+    payload: { offset: data.payload.offset, imports: imp, bytes: payloadBytes },
+    payload_setup: payloadSetup(original, table, data, payloadBytes.length),
+    patches,
+  };
+  return { plan, patches: report, anchors };
 }

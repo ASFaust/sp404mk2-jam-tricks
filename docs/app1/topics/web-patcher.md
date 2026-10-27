@@ -10,7 +10,7 @@ the page Roland's firmware zip, and JavaScript in the browser builds the patched
 The goal beyond v5.52: the page finds the patch sites itself by pattern, so the patches keep
 working when Roland releases a new version with small changes.
 
-## State (2026-10-27)
+## State (2026-10-28)
 
 - **Live on the user's site, v5.52 only**, tested by the user: page `tools/sp404mk2-patcher/`
   (URL kept from before the name), section "Tools" on the home page. Offers `no-efx-timeout`,
@@ -20,35 +20,53 @@ working when Roland releases a new version with small changes.
   users of older versions can update first; the resolver matters once 5.53 appears.
 - **Done in the firmware project:** the payload's import table (`app1/payload/imports.h`, see
   Design), `make_image.py`'s check against hard-coded Roland addresses, `export_web.py`.
+- **Built 2026-10-28, offline only, not used by the page:** the pattern manifest
+  (`app1/tools/anchors.py`, `resolve` in `patches.json`, `relocatable` and `imports` per patch)
+  and the resolver (`resolve()` in `patcher.js`). Treating v5.52 as unknown, it finds all 94
+  anchors and builds all 47 selections byte-identically to the SHA-256 path
+  (`tests/verify_web.py`). Bench over older releases (`tests/resolve_bench.mjs`):
 
-- **Measured, not built:** pattern search across old releases (below; the scripts were
-  throwaway), and the plan for RAM via the skip-back buffer.
+  | Release | Anchors | Patches resolved |
+  |---|---|---|
+  | v5.51, v5.50 | 94 / 94 | all but `tuner` |
+  | v5.01, v5.00 | 91 / 94 | all but `vari4-stretch`, `tuner` |
+  | v4.07 – v4.05 | 85–86 / 94 | `no-efx-timeout`, both scale pads, `chrom-voices` |
+  | v4.04 and older | 43–81 / 94 | `no-efx-timeout` |
+
+  `tuner` is refused because `Audio_RxHandler`'s replayed `movw r0, #0x9d0` (the low half of
+  `g_param_store`) differs before v5.52; see To do 5. (Correction to the measurement below:
+  `TopScreen_KeyDown` is found in v5.51; only its `movw`/`movt` immediates and `bl` offsets differ.)
+- **Not built:** the RAM checks (region 9, skip-back buffer), so the page still accepts v5.52 only.
 
 ## To do (in order)
 
 1. **Move our state out of MPU region 9** (`ram.h`, see Open questions): it sits 8 bytes above
    Roland's use there, and that use has grown between releases. A firmware change, so test on
    the device. Recommended first, since it's the one known flaw.
-2. **Pattern manifest.** `export_web.py` exports, for every patch site and every import, a
-   v5.52 byte pattern with moving parts wildcarded (`bl`/`b.w` offsets, pointer words), the
-   offset into it and the expected bytes. Most can be generated; some need hand-written rules:
-   vtable slots and the page record (find the function, then the word `address | 1`), the
-   chromatic semitone tables and other data (via the code that loads them), branch targets
-   inside Roland's code (`b.w 0x800F822A` etc. in the VARI wheel dispatcher).
-3. **Resolver in `patcher.js`**, slotting in where `identify()` is: search every pattern,
-   require exactly one match, refuse a patch if any of its anchors fails. Fill the import
-   table; re-encode our generated instructions with a small Thumb-2 encoder (`b.w`,
-   `movw`/`movt`, `ldr.w pc, [pc, #n]`).
+2. ~~**Pattern manifest.**~~ Done: `anchors.py` (rules and how they are derived in its docstring).
+3. ~~**Resolver in `patcher.js`**~~ Done: `resolve(original, data)` returns a plan for
+   `applyPatches` and a per-patch report. Not yet called by `app.js`.
 4. **Skip-back buffer check and shrink** (section below): find every site that builds the
    buffer end, lower it if it would overlap the payload, check nothing else points into the range.
-5. **Strict checks:** the instructions `hooks.S` replays must match exactly; struct offsets the
-   payload relies on (e.g. voice `+0x14274`) read back from Roland's instructions and compared.
-6. **Test bench:** run the resolver over every release in a local collection of older APP1 releases (going backwards in
-   time, so only a robustness check). The real test is the first 5.53: resolve, flash, try each
+5. **Strict checks:** the instructions `hooks.S` replays must match exactly (done: their old
+   bytes are exact). That makes `tuner` unavailable wherever `g_param_store` moved; to fix,
+   `audio_rx_orig` could load `g_param_store` from the import table and continue after the
+   `movt` (a payload change, test on the device). Struct offsets: field imports are found
+   through a load or store with the offset kept exact in the pattern; still assumed rather than
+   checked: `g_rec_ctrl_source` (`g_rec_ctrl + 0x258`) and offsets inside the payload's C code
+   (e.g. voice `+0x14274`). The four render-buffer imports have one reference each in v5.52, so
+   one pattern each.
+6. **Test bench** (done: `node tests/resolve_bench.mjs [-v] <APP1 files>`): the resolver over
+   older releases (going backwards in time, so only a robustness check). The real test is the first 5.53: resolve, flash, try each
    patch on the device.
 7. **Page:** label a recognised but untested version clearly; show which patches were found.
 
-Steps 2 and 3 are the core. Whenever a patch changes: run `python3 app1/tools/export_web.py web`, test it, and commit the regenerated manifest
+Where to resume (2026-10-28): step 4 needs no device and fits the resolver: find the buffer-end
+`movw`/`movt` sites per version, check them against the payload range and add the result to
+`resolve()`'s report. Steps 1 and the `audio_rx_orig` change in 5 alter the payload and need a
+device test. `app.js` should call `resolve()` only once 1 and 4 are done.
+
+Whenever a patch changes: run `python3 app1/tools/export_web.py web`, test it, and commit the regenerated manifest
 and `web/standalone.html` with the source change. The export records the source revision
 and working-tree state, then bundles the page for deployment.
 

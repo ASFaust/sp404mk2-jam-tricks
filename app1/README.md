@@ -31,6 +31,9 @@ python3 -m http.server 8000
 Open `http://localhost:8000/web/`. Exporting compiles the payload and verifies all 47
 allowed nonempty musical patch selections against the Python builder. Check the browser replay with
 `python3 tests/verify_web.py` (optional `SP404_ZIP=/path/to/update.zip` also checks ZIP input).
+The export also writes the pattern rules for other firmware versions (`app1/tools/anchors.py`);
+`verify_web.py` checks that they rebuild every v5.52 selection, and
+`node tests/resolve_bench.mjs -v <APP1 files>` reports what they find in other releases.
 Commit `web/patches.json` and `web/standalone.html` alongside source changes. The manifest
 records its source revision and working-tree state. Exporting also packages the page as one
 HTML file, including its scripts, manifest, styles and fonts.

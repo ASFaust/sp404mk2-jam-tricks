@@ -1,7 +1,7 @@
 {
  "format": 1,
- "built": "2026-10-27",
- "source": "8525abc",
+ "built": "2026-10-28",
+ "source": "33d4b77+changes",
  "firmware": [
   {
    "version": "5.52",
@@ -63,7 +63,27 @@
      "new": "00",
      "why": "EfxEdit_Update: 'sub.w r1, r0, #0x32' becomes #0, countdown never runs out"
     }
-   ]
+   ],
+   "relocatable": [
+    {
+     "at": [
+      "801467D2",
+      0
+     ],
+     "old": [
+      {
+       "hex": "32"
+      }
+     ],
+     "new": [
+      {
+       "hex": "00"
+      }
+     ],
+     "why": "EfxEdit_Update: 'sub.w r1, r0, #0x32' becomes #0, countdown never runs out"
+    }
+   ],
+   "imports": []
   },
   {
    "id": "scale-pads",
@@ -116,6 +136,176 @@
      "new": "a505fe83",
      "why": "padding -> address of range_chrom_24 (chromatic range -24..24)"
     }
+   ],
+   "relocatable": [
+    {
+     "at": [
+      "slot_ChromPage_OnKey",
+      0
+     ],
+     "old": [
+      {
+       "word": [
+        "ChromPage_OnKey",
+        0
+       ]
+      }
+     ],
+     "new": [
+      {
+       "hex": "8d01fe83"
+      }
+     ],
+     "why": "chromatic page vtable slot 0xD8 (ChromPage_OnKey) -> hook_chrom_on_key"
+    },
+    {
+     "at": [
+      "slot_ChromPage_OnPadDown",
+      0
+     ],
+     "old": [
+      {
+       "word": [
+        "ChromPage_OnPadDown",
+        0
+       ]
+      }
+     ],
+     "new": [
+      {
+       "hex": "7103fe83"
+      }
+     ],
+     "why": "chromatic page vtable slot 0xFC (ChromPage_OnPadDown) -> hook_chrom_pad_down"
+    },
+    {
+     "at": 2214477797,
+     "old": [
+      {
+       "hex": "00"
+      }
+     ],
+     "new": [
+      {
+       "hex": "01"
+      }
+     ],
+     "why": "payload flag chrom_layout: in-key pad tables on"
+    },
+    {
+     "at": [
+      "slot_ChromPage_BuildLayout",
+      0
+     ],
+     "old": [
+      {
+       "word": [
+        "ChromPage_BuildLayout",
+        0
+       ]
+      }
+     ],
+     "new": [
+      {
+       "hex": "9105fe83"
+      }
+     ],
+     "why": "chromatic page vtable slot 0x118 (layout build) -> hook_chrom_build"
+    },
+    {
+     "at": [
+      "ParamGetRange_table",
+      310
+     ],
+     "old": [
+      {
+       "tbh": [
+        [
+         "ParamGetRange_pitch",
+         0
+        ],
+        [
+         "ParamGetRange_table",
+         0
+        ]
+       ]
+      }
+     ],
+     "new": [
+      {
+       "tbh": [
+        [
+         "800ED544",
+         0
+        ],
+        [
+         "ParamGetRange_table",
+         0
+        ]
+       ]
+      }
+     ],
+     "why": "Param_GetRange switch entry for 0x9B: case 0x800D38C8 (shared with pad PITCH) -> 0x800ED544"
+    },
+    {
+     "at": [
+      "800ED544",
+      0
+     ],
+     "old": [
+      {
+       "hex": "00000000"
+      }
+     ],
+     "new": [
+      {
+       "ldrpc": [
+        "800ED544",
+        16
+       ]
+      }
+     ],
+     "why": "padding -> 'ldr.w pc, [pc, #0xC]' (jumps via the word at 0x800ED554)"
+    },
+    {
+     "at": [
+      "800ED544",
+      16
+     ],
+     "old": [
+      {
+       "hex": "00000000"
+      }
+     ],
+     "new": [
+      {
+       "hex": "a505fe83"
+      }
+     ],
+     "why": "padding -> address of range_chrom_24 (chromatic range -24..24)"
+    }
+   ],
+   "imports": [
+    "ChromPage_BuildLayout",
+    "ChromPage_OnKey",
+    "ChromPage_OnPadDown",
+    "Key_IsHeld",
+    "Page_PopupTime",
+    "Param_Get",
+    "Param_Set",
+    "Popup_Show",
+    "Voice_Release",
+    "g_chrom_semis_lights",
+    "g_chrom_semis_page",
+    "g_chrom_semis_pitch",
+    "g_chrom_semis_trigger",
+    "g_param_store",
+    "g_param_store_chrom_offset",
+    "g_param_store_chrom_root",
+    "g_param_store_chrom_scale",
+    "g_redraw_flags",
+    "g_sys_time_ms",
+    "g_voice_slots"
    ]
   },
   {
@@ -181,6 +371,210 @@
      "new": "18",
      "why": "Param_GetRange(0x73 PITCH): max 'movs r0, #0xc' (12) -> #0x18 (24)"
     }
+   ],
+   "relocatable": [
+    {
+     "at": [
+      "slot_ChromPage_OnKey",
+      0
+     ],
+     "old": [
+      {
+       "word": [
+        "ChromPage_OnKey",
+        0
+       ]
+      }
+     ],
+     "new": [
+      {
+       "hex": "8d01fe83"
+      }
+     ],
+     "why": "chromatic page vtable slot 0xD8 (ChromPage_OnKey) -> hook_chrom_on_key"
+    },
+    {
+     "at": [
+      "slot_ChromPage_OnPadDown",
+      0
+     ],
+     "old": [
+      {
+       "word": [
+        "ChromPage_OnPadDown",
+        0
+       ]
+      }
+     ],
+     "new": [
+      {
+       "hex": "7103fe83"
+      }
+     ],
+     "why": "chromatic page vtable slot 0xFC (ChromPage_OnPadDown) -> hook_chrom_pad_down"
+    },
+    {
+     "at": 2214477797,
+     "old": [
+      {
+       "hex": "00"
+      }
+     ],
+     "new": [
+      {
+       "hex": "01"
+      }
+     ],
+     "why": "payload flag chrom_layout: in-key pad tables on"
+    },
+    {
+     "at": [
+      "slot_ChromPage_BuildLayout",
+      0
+     ],
+     "old": [
+      {
+       "word": [
+        "ChromPage_BuildLayout",
+        0
+       ]
+      }
+     ],
+     "new": [
+      {
+       "hex": "9105fe83"
+      }
+     ],
+     "why": "chromatic page vtable slot 0x118 (layout build) -> hook_chrom_build"
+    },
+    {
+     "at": [
+      "ParamGetRange_table",
+      310
+     ],
+     "old": [
+      {
+       "tbh": [
+        [
+         "ParamGetRange_pitch",
+         0
+        ],
+        [
+         "ParamGetRange_table",
+         0
+        ]
+       ]
+      }
+     ],
+     "new": [
+      {
+       "tbh": [
+        [
+         "800ED544",
+         0
+        ],
+        [
+         "ParamGetRange_table",
+         0
+        ]
+       ]
+      }
+     ],
+     "why": "Param_GetRange switch entry for 0x9B: case 0x800D38C8 (shared with pad PITCH) -> 0x800ED544"
+    },
+    {
+     "at": [
+      "800ED544",
+      0
+     ],
+     "old": [
+      {
+       "hex": "00000000"
+      }
+     ],
+     "new": [
+      {
+       "ldrpc": [
+        "800ED544",
+        16
+       ]
+      }
+     ],
+     "why": "padding -> 'ldr.w pc, [pc, #0xC]' (jumps via the word at 0x800ED554)"
+    },
+    {
+     "at": [
+      "800ED544",
+      16
+     ],
+     "old": [
+      {
+       "hex": "00000000"
+      }
+     ],
+     "new": [
+      {
+       "hex": "a505fe83"
+      }
+     ],
+     "why": "padding -> address of range_chrom_24 (chromatic range -24..24)"
+    },
+    {
+     "at": [
+      "ParamGetRange_pitch",
+      2
+     ],
+     "old": [
+      {
+       "hex": "0b"
+      }
+     ],
+     "new": [
+      {
+       "hex": "17"
+      }
+     ],
+     "why": "Param_GetRange(0x73 PITCH): min 'mvn r0, #0xb' (-12) -> #0x17 (-24)"
+    },
+    {
+     "at": [
+      "ParamGetRange_pitch",
+      6
+     ],
+     "old": [
+      {
+       "hex": "0c"
+      }
+     ],
+     "new": [
+      {
+       "hex": "18"
+      }
+     ],
+     "why": "Param_GetRange(0x73 PITCH): max 'movs r0, #0xc' (12) -> #0x18 (24)"
+    }
+   ],
+   "imports": [
+    "ChromPage_BuildLayout",
+    "ChromPage_OnKey",
+    "ChromPage_OnPadDown",
+    "Key_IsHeld",
+    "Page_PopupTime",
+    "Param_Get",
+    "Param_Set",
+    "Popup_Show",
+    "Voice_Release",
+    "g_chrom_semis_lights",
+    "g_chrom_semis_page",
+    "g_chrom_semis_pitch",
+    "g_chrom_semis_trigger",
+    "g_param_store",
+    "g_param_store_chrom_offset",
+    "g_param_store_chrom_root",
+    "g_param_store_chrom_scale",
+    "g_redraw_flags",
+    "g_sys_time_ms",
+    "g_voice_slots"
    ]
   },
   {
@@ -234,6 +628,162 @@
      "new": "6d9901446d91c8f84c00",
      "why": "Pad_Trigger, chromatic note: PITCH = pad PITCH + note, pad FINE kept"
     }
+   ],
+   "relocatable": [
+    {
+     "at": [
+      "slot_ChromPage_OnKey",
+      0
+     ],
+     "old": [
+      {
+       "word": [
+        "ChromPage_OnKey",
+        0
+       ]
+      }
+     ],
+     "new": [
+      {
+       "hex": "8d01fe83"
+      }
+     ],
+     "why": "chromatic page vtable slot 0xD8 (ChromPage_OnKey) -> hook_chrom_on_key"
+    },
+    {
+     "at": [
+      "slot_ChromPage_OnPadDown",
+      0
+     ],
+     "old": [
+      {
+       "word": [
+        "ChromPage_OnPadDown",
+        0
+       ]
+      }
+     ],
+     "new": [
+      {
+       "hex": "7103fe83"
+      }
+     ],
+     "why": "chromatic page vtable slot 0xFC (ChromPage_OnPadDown) -> hook_chrom_pad_down"
+    },
+    {
+     "at": 2214477796,
+     "old": [
+      {
+       "hex": "00"
+      }
+     ],
+     "new": [
+      {
+       "hex": "01"
+      }
+     ],
+     "why": "payload flag chrom_voices: REMAIN + wheel, voice limit on"
+    },
+    {
+     "at": [
+      "8001A8D4",
+      0
+     ],
+     "old": [
+      {
+       "hex": "3f2a88bf0022"
+      }
+     ],
+     "new": [
+      {
+       "hex": "500a18bf0022"
+      }
+     ],
+     "why": "pad param 0x70 validation: 'cmp r2, #0x3f; it hi; movhi r2, #0' -> zero only above 0x1FF"
+    },
+    {
+     "at": [
+      "Voice_SetParam",
+      -1
+     ],
+     "old": [
+      {
+       "hex": "b0b5054600680028"
+      }
+     ],
+     "new": [
+      {
+       "ldrpc": [
+        "@",
+        4
+       ]
+      },
+      {
+       "hex": "2505fe83"
+      }
+     ],
+     "why": "Voice_SetParam: first 4 instructions -> 'ldr.w pc, [pc]' + hook_voice_set_param (chromatic notes get the pad's PITCH/FINE; voice_set_param_orig runs the 4 and returns)"
+    },
+    {
+     "at": [
+      "800D71BA",
+      0
+     ],
+     "old": [
+      {
+       "hex": "6d9000216e91c8f84c00"
+      }
+     ],
+     "new": [
+      {
+       "hex": "6d9901446d91c8f84c00"
+      }
+     ],
+     "why": "Pad_Trigger, chromatic note: PITCH = pad PITCH + note, pad FINE kept"
+    },
+    {
+     "at": [
+      "800D72CE",
+      0
+     ],
+     "old": [
+      {
+       "hex": "6d9000216e91c8f84c00"
+      }
+     ],
+     "new": [
+      {
+       "hex": "6d9901446d91c8f84c00"
+      }
+     ],
+     "why": "Pad_Trigger, chromatic note: PITCH = pad PITCH + note, pad FINE kept"
+    }
+   ],
+   "imports": [
+    "ChromPage_OnKey",
+    "ChromPage_OnPadDown",
+    "Key_IsHeld",
+    "PadStore_Get",
+    "Pad_Trigger_pitch_calls_hi",
+    "Pad_Trigger_pitch_calls_lo",
+    "Page_PopupTime",
+    "Param_Get",
+    "Param_Set",
+    "Popup_Show",
+    "Voice_Release",
+    "Voice_SetParam_cont",
+    "g_chrom_semis_lights",
+    "g_chrom_semis_page",
+    "g_chrom_semis_pitch",
+    "g_chrom_semis_trigger",
+    "g_pad_store",
+    "g_param_store",
+    "g_param_store_chrom_offset",
+    "g_param_store_chrom_root",
+    "g_param_store_chrom_scale",
+    "g_redraw_flags",
+    "g_sys_time_ms",
+    "g_voice_slots"
    ]
   },
   {
@@ -317,6 +867,267 @@
      "new": "3846314643f63173c8f2fe33984700bf00bf00bf",
      "why": "PadStore_Set, pad param 0x70 with new VARI bits: stop + re-trigger the pad's voices -> hook_vari_changed (switch them in place, app1/payload/vari.c)"
     }
+   ],
+   "relocatable": [
+    {
+     "at": [
+      "800D2E2E",
+      0
+     ],
+     "old": [
+      {
+       "mov32": [
+        12,
+        [
+         "Resampler_Stereo",
+         0
+        ]
+       ]
+      }
+     ],
+     "new": [
+      {
+       "hex": "43f2a14cc8f2fe3c"
+      }
+     ],
+     "why": "Resampler_Stereo thunk: 'movw/movt ip' 0x140C5 -> tsx_resampler_stereo (mode 3 ours, others Roland's)"
+    },
+    {
+     "at": [
+      "800D2E38",
+      0
+     ],
+     "old": [
+      {
+       "mov32": [
+        12,
+        [
+         "Resampler_Mono",
+         0
+        ]
+       ]
+      }
+     ],
+     "new": [
+      {
+       "hex": "43f2355cc8f2fe3c"
+      }
+     ],
+     "why": "Resampler_Mono thunk: 'movw/movt ip' 0x1409B -> tsx_resampler_mono"
+    },
+    {
+     "at": [
+      "800E4392",
+      0
+     ],
+     "old": [
+      {
+       "hex": "06"
+      }
+     ],
+     "new": [
+      {
+       "hex": "04"
+      }
+     ],
+     "why": "Voice_RenderSetup: 'and r2, #6' -> #4, so mode 3 fills the source ring to 60 % like Ensemble"
+    },
+    {
+     "at": [
+      "ParamGetRange_table",
+      492
+     ],
+     "old": [
+      {
+       "tbh": [
+        [
+         "ParamGetRange_vari",
+         0
+        ],
+        [
+         "ParamGetRange_table",
+         0
+        ]
+       ]
+      }
+     ],
+     "new": [
+      {
+       "tbh": [
+        [
+         "800D5784",
+         0
+        ],
+        [
+         "ParamGetRange_table",
+         0
+        ]
+       ]
+      }
+     ],
+     "why": "Param_GetRange switch entry for 0xF6 (VARI): shared 0..2 case 0x800D3840 -> 0x800D5784"
+    },
+    {
+     "at": [
+      "800D5784",
+      0
+     ],
+     "old": [
+      {
+       "hex": "00000000"
+      }
+     ],
+     "new": [
+      {
+       "ldrpc": [
+        "800D593C",
+        0
+       ]
+      }
+     ],
+     "why": "padding -> 'ldr.w pc, [pc, #0x1B4]' (jumps via the word at 0x800D593C)"
+    },
+    {
+     "at": [
+      "800D593C",
+      0
+     ],
+     "old": [
+      {
+       "hex": "00000000"
+      }
+     ],
+     "new": [
+      {
+       "hex": "b505fe83"
+      }
+     ],
+     "why": "padding -> address of range_vari4 (VARI 0..3)"
+    },
+    {
+     "at": [
+      "800C63A6",
+      0
+     ],
+     "old": [
+      {
+       "hex": "44f25420c3f24420"
+      }
+     ],
+     "new": [
+      {
+       "hex": "46f65040c7f27530"
+      }
+     ],
+     "why": "Param_FormatValue(0xF6, 3): label 'TBD2' -> 'Plus'"
+    },
+    {
+     "at": [
+      "800F8222",
+      0
+     ],
+     "old": [
+      {
+       "hex": "012e20db"
+      }
+     ],
+     "new": [
+      {
+       "hex": "00f021b8"
+      }
+     ],
+     "why": "VARI wheel: 'cmp r6, #1; blt' -> 'b 0x800F8268' (the new dispatcher)"
+    },
+    {
+     "at": [
+      "800F8222",
+      28
+     ],
+     "old": [
+      {
+       "hex": "4ff00009"
+      }
+     ],
+     "new": [
+      {
+       "hex": "aff30080"
+      }
+     ],
+     "why": "VARI wheel, '-> Off' block: 'mov.w r9, #0' -> nop.w (r9 = VARI from the dispatcher)"
+    },
+    {
+     "at": [
+      "800F8222",
+      38
+     ],
+     "old": [
+      {
+       "hex": "0022"
+      }
+     ],
+     "new": [
+      {
+       "hex": "4a46"
+      }
+     ],
+     "why": "VARI wheel, '-> Off' block: 'movs r2, #0' -> 'mov r2, r9'"
+    },
+    {
+     "at": [
+      "800F8222",
+      70
+     ],
+     "old": [
+      {
+       "hex": "012f1bd0022808d00128dad0a0bb55e0022853d0012811d070bb0ffa8af7????????????????7721002230463b46????????f62101224ff001090fe00ffa8af7????????????????7721002230463b46????????f62102224ff00209"
+      }
+     ],
+     "new": [
+      {
+       "hex": "012f09d0012e03db03280cda013007e0002808dd013803e0012eacbf002003208146fff7cebf00f049b800bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf00bf"
+      }
+     ],
+     "why": "VARI wheel: old decisions and the '-> Backing'/'-> Ensemble' blocks -> new dispatcher with Plus"
+    },
+    {
+     "at": [
+      "800DBDC4",
+      0
+     ],
+     "old": [
+      {
+       "hex": "3846????????????????3946????????????????"
+      }
+     ],
+     "new": [
+      {
+       "hex": "3846314643f63173c8f2fe33984700bf00bf00bf"
+      }
+     ],
+     "why": "PadStore_Set, pad param 0x70 with new VARI bits: stop + re-trigger the pad's voices -> hook_vari_changed (switch them in place, app1/payload/vari.c)"
+    }
+   ],
+   "imports": [
+    "Ctx_Begin",
+    "Ctx_End",
+    "Ctx_FillRect",
+    "Ctx_SetInk",
+    "Page93_Handle",
+    "Resampler_Mono",
+    "Resampler_Stereo",
+    "Stretch_Init",
+    "UI_RequestBack",
+    "UI_SetTickInterval",
+    "Voice_SetParam",
+    "XPage_ctor",
+    "g_page_request_seen",
+    "g_render_out_0",
+    "g_render_out_1",
+    "g_render_scratch_0",
+    "g_render_scratch_1",
+    "g_voice_slots",
+    "operator_new",
+    "vt_XPage"
    ]
   },
   {
@@ -346,7 +1157,2093 @@
      "new": "dff800f0550ffe8300bf",
      "why": "Audio_RxHandler (ITCM): 'push; sub sp; mov r4, r0; movw r0' -> 'ldr.w pc, [pc]' + address of hook_audio_rx + nop (receive word 0 into the tuner's ring; audio_rx_orig runs the four and continues at 0x1CA8A)"
     }
+   ],
+   "relocatable": [
+    {
+     "at": [
+      "page_record_93",
+      0
+     ],
+     "old": [
+      {
+       "word": [
+        "slot_Page93_Handle",
+        0
+       ]
+      }
+     ],
+     "new": [
+      {
+       "hex": "2c40fe83"
+      }
+     ],
+     "why": "page record 93: handler slot 0x8023B58C -> cpage_host_slot (custom pages)"
+    },
+    {
+     "at": [
+      "slot_TopScreen_KeyDown",
+      0
+     ],
+     "old": [
+      {
+       "word": [
+        "TopScreen_KeyDown",
+        0
+       ]
+      }
+     ],
+     "new": [
+      {
+       "hex": "493efe83"
+      }
+     ],
+     "why": "top screen vtable slot 0x18 (key down) -> hook_top_key_down (BANK A + B)"
+    },
+    {
+     "at": [
+      "0001CA80",
+      0
+     ],
+     "old": [
+      {
+       "hex": "f0b581b0044640f6d010"
+      }
+     ],
+     "new": [
+      {
+       "ldrpc": [
+        "@",
+        4
+       ]
+      },
+      {
+       "hex": "550ffe8300bf"
+      }
+     ],
+     "why": "Audio_RxHandler (ITCM): 'push; sub sp; mov r4, r0; movw r0' -> 'ldr.w pc, [pc]' + address of hook_audio_rx + nop (receive word 0 into the tuner's ring; audio_rx_orig runs the four and continues at 0x1CA8A)"
+    }
+   ],
+   "imports": [
+    "Audio_RxHandler_cont",
+    "Ctx_Begin",
+    "Ctx_DrawTextRight",
+    "Ctx_End",
+    "Ctx_FillRect",
+    "Ctx_FrameRect",
+    "Ctx_SetFont",
+    "Ctx_SetInk",
+    "DrawText",
+    "DrawTextCentred",
+    "ExtSource_Toggle",
+    "Key_IsHeld",
+    "PadStore_Get",
+    "PadStore_Set",
+    "Page93_Handle",
+    "PickStore_Get",
+    "SampleInfo_ForPad",
+    "TopScreen_KeyDown",
+    "UI_GetCurrentPage",
+    "UI_RequestBack",
+    "UI_RequestPage",
+    "UI_RequestRebuild",
+    "UI_SetTickInterval",
+    "UI_UserActivity",
+    "XPage_ctor",
+    "g_audio_rx_buf",
+    "g_bank_f_to_j",
+    "g_bank_key_index",
+    "g_bank_key_last",
+    "g_pad_store",
+    "g_page_request_seen",
+    "g_pick_store",
+    "g_rec_ctrl_source",
+    "g_rx_force_word1",
+    "g_voice_slots",
+    "operator_delete",
+    "operator_new",
+    "vt_XPage"
    ]
   }
- ]
+ ],
+ "resolve": {
+  "anchors": [
+   {
+    "name": "0001CA80",
+    "find": [
+     {
+      "how": "at",
+      "p": "f08f00bf00bff0b581b00446????????????????b921",
+      "k": 6,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "00bff0b581b00446????????????????b921",
+      "k": 2,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "8001A8D4",
+    "find": [
+     {
+      "how": "at",
+      "p": "f8e600bf3f2a88bf0022104610bd00bf",
+      "k": 4,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "00bf3f2a88bf0022104610bd00bf",
+      "k": 2,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "800C63A6",
+    "find": [
+     {
+      "how": "at",
+      "p": "002088f8040044f25420c3f24420c8f80000d1e1",
+      "k": 6,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "040044f25420c3f24420c8f80000d1e1",
+      "k": 2,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "800D2E2E",
+    "find": [
+     {
+      "how": "at",
+      "p": "8f0cc0f2000c6047????????????????6047",
+      "k": 8,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "c0f2000c6047????????????????6047????????????????60474ef2254cc0f2000c6047",
+      "k": 6,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "800D2E38",
+    "find": [
+     {
+      "how": "at",
+      "p": "6047????????????????60474ef2254cc0f2",
+      "k": 2,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "6047????????????????60474ef2254cc0f2000c60474ff2",
+      "k": 2,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "800D5784",
+    "find": [
+     {
+      "how": "at",
+      "p": "00bf00207047000000002de9f043c1b0",
+      "k": 6,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "7047000000002de9f043c1b0",
+      "k": 2,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "800D593C",
+    "find": [
+     {
+      "how": "at",
+      "p": "04b080bd000000002de9f04f85b0",
+      "k": 4,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "80bd000000002de9f04f85b0",
+      "k": 2,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "800D71BA",
+    "find": [
+     {
+      "how": "at",
+      "p": "500f0f9804d06d9000216e91c8f84c001cb101214046",
+      "k": 6,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "04d06d9000216e91c8f84c001cb101214046",
+      "k": 2,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "800D72CE",
+    "find": [
+     {
+      "how": "at",
+      "p": "500f0f9804d06d9000216e91c8f84c00159804285d98",
+      "k": 6,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "04d06d9000216e91c8f84c00159804285d98",
+      "k": 2,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "800DBDC4",
+    "find": [
+     {
+      "how": "at",
+      "p": "060f????????3846????????????????3946????????????????bbe200bfac20",
+      "k": 6,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "3846????????????????3946????????????????bbe200bfac20",
+      "k": 0,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "800E4392",
+    "find": [
+     {
+      "how": "at",
+      "p": "2821049502f006022825079004",
+      "k": 6,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "049502f0060228250790042a09944fea533008",
+      "k": 4,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "800ED544",
+    "find": [
+     {
+      "how": "at",
+      "p": "70470000000000004ff0ff3070470000002070470000000010b502680c46",
+      "k": 4,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "0000000000004ff0ff3070470000002070470000000010b502680c46",
+      "k": 2,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "800F8222",
+    "find": [
+     {
+      "how": "at",
+      "p": "4846????????012e20db012f26d10ffa8af7????????????????7721002230463b464ff00009????????f62100223be02c68002c48d004f5b673002120463246????????2046????????3de0012f1bd0022808d00128dad0a0bb55e0022853d0012811d070bb0ffa8af7????????????????7721002230463b46????????f62101224ff001090fe00ffa8af7????????????????7721002230463b46????????f62102224ff0020930463b46????????cdf8009077210022f6232046????????????????????????2a20????????08b100220ce0686808b1002208e02868002228b1d0f87c010138042838bf0122????????3421????????0023????????????02b0bde8f08700bf0ffa8af7",
+      "k": 6,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "012e20db012f26d10ffa8af7????????????????7721002230463b464ff00009????????f62100223be02c68002c48d004f5b673002120463246????????2046????????3de0012f1bd0022808d00128dad0a0bb55e0022853d0012811d070bb0ffa8af7????????????????7721002230463b46????????f62101224ff001090fe00ffa8af7????????????????7721002230463b46????????f62102224ff0020930463b46????????cdf8009077210022f6232046????????????????????????2a20????????08b100220ce0686808b1002208e02868002228b1d0f87c010138042838bf0122????????3421????????0023????????????02b0bde8f08700bf0ffa8af7",
+      "k": 0,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "801467D2",
+    "find": [
+     {
+      "how": "at",
+      "p": "28680229a0f1320129600fd295",
+      "k": 6,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "0229a0f1320129600fd295f82f10d1b1322824",
+      "k": 4,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "Audio_RxHandler_cont",
+    "from": "0001CA80",
+    "add": 11
+   },
+   {
+    "name": "ChromPage_BuildLayout",
+    "find": [
+     {
+      "how": "at",
+      "p": "000000002de9f043afb041f66c29",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "000000002de9f043afb041f66c290df108080646",
+      "k": 4,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "ChromPage_OnKey",
+    "find": [
+     {
+      "how": "at",
+      "p": "804000207047f0b581b00e460121",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "7047f0b581b00e460121",
+      "k": 2,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "ChromPage_OnPadDown",
+    "find": [
+     {
+      "how": "at",
+      "p": "0120b0bd2de9f04184b01646",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "b0bd2de9f04184b01646",
+      "k": 2,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Ctx_Begin",
+    "find": [
+     {
+      "how": "at",
+      "p": "0268d268104710b582b00446b0f9",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "104710b582b00446b0f9",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "416d04e0606b????????2068816d2046",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "fe422de9f0418cb00446d0f884000d46????????d5e90212cde90a12216828686a68cde9",
+      "k": 16,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Ctx_DrawTextRight",
+    "find": [
+     {
+      "how": "at",
+      "p": "b0bd00000000000080b5b0f814c0b0f818e0",
+      "k": 8,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "b0bd00000000000080b5b0f814c0b0f818e000686144724409b2d0f800c012b2dcf830c1bde88040",
+      "k": 8,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "01ab7d210a22????????09b0bde8f08f",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "4b46083801b22046????????07b0????????5641",
+      "k": 8,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Ctx_End",
+    "find": [
+     {
+      "how": "at",
+      "p": "70bd00000000b0f9a4100129b8bf",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "0000b0f9a4100129b8bf",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "a6db53e75846????????15b0bde8f08f",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "2946????????606b????????04b0b0bd70470000",
+      "k": 8,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Ctx_FillRect",
+    "find": [
+     {
+      "how": "at",
+      "p": "50b0b0bdb0b584b004466d46",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "b0bdb0b584b004466d46",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "d4f884003946????????d4f884006ff0",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "28464946????????abf10300a8f1",
+      "k": 4,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Ctx_FrameRect",
+    "find": [
+     {
+      "how": "at",
+      "p": "c0202946904704b0b0bd000000000000b0b584b004466d46c8680390886802904868",
+      "k": 16,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "904704b0b0bd000000000000b0b584b004466d46c8680390886802904868019008680090d4e905122846????????20680168d1f8bc202946904704b0",
+      "k": 12,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "19aed5f884003146????????1998????????1b99",
+      "k": 8,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "d4f8840001a9????????09b0f0bdb0b50446",
+      "k": 6,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Ctx_SetFont",
+    "find": [
+     {
+      "how": "at",
+      "p": "1040????????00680268926d1047",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "00680268926d1047f0b581b007461846",
+      "k": 0,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "272334a10aa8????????d4f884001d21????????d4f8b400012818d1d4f8840032a36921",
+      "k": 16,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "0296????????1d212046????????6ff07f4100222046",
+      "k": 10,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Ctx_SetInk",
+    "find": [
+     {
+      "how": "at",
+      "p": "10461847000000680268d2681047",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "000000680268d2681047",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "67f30f211144????????21b2686b0ffa",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "f0870000000070b586b0456b0446b5f9a60002280bdc0420????????00f1807000f10f012846????????18e000bf4ff48070????????05464ff48070????????06464ff48070????????c2b229043ffa",
+      "k": 38,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "DrawText",
+    "find": [
+     {
+      "how": "at",
+      "p": "0268926d1047f0b581b007461846",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "1047f0b581b007461846",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "0531023209b212b2????????????????04f1a003",
+      "k": 8,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "d8f834000222????????2ab0bde8f087",
+      "k": 6,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "DrawTextCentred",
+    "find": [
+     {
+      "how": "at",
+      "p": "4068704700002de9f04786b00646",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "704700002de9f04786b0064618461c4690468946",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "06a340210522????????cde7204d4658",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "5e210c22????????47b0bde8f08f",
+      "k": 4,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "ExtSource_Toggle",
+    "find": [
+     {
+      "how": "at",
+      "p": "4f50000000002de9f04192b0",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "4f50000000002de9f04192b0????????????????????????????????0c46",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "00bf58462146????????012528461fb0",
+      "k": 6,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Key_IsHeld",
+    "find": [
+     {
+      "how": "at",
+      "p": "08437047000081b25429",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "7047000081b25429????????704700bf",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "9847062871d12a20????????0028",
+      "k": 8,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "f08300bf2a20????????0646002818bf",
+      "k": 6,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "PadStore_Get",
+    "find": [
+     {
+      "how": "at",
+      "p": "00000000000010b53e2914460246",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "000010b53e2914460246",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "6e21????????2246????????002800f0b78249f0",
+      "k": 8,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "bfae????????0021????????00224ff6ff74????????24b2213001b2????????????????2246",
+      "k": 18,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "PadStore_Set",
+    "find": [
+     {
+      "how": "at",
+      "p": "0000000000002de9f04f85b01f46",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "00002de9f04f85b01f46",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "002330463a46????????012100233046",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "284653462246????????6e2128464246",
+      "k": 6,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Pad_Trigger_pitch_calls_hi",
+    "find": [
+     {
+      "how": "at",
+      "p": "5846????????1098cbf848006d98",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "1098cbf848006d98cbf84c00",
+      "k": 0,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Pad_Trigger_pitch_calls_lo",
+    "find": [
+     {
+      "how": "at",
+      "p": "40460f9a????????742100224046",
+      "k": 8,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "742100224046????????012738460df5",
+      "k": 0,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "page_records",
+    "find": [
+     {
+      "how": "at",
+      "p": "00ff0000000000000700",
+      "k": -4,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "00ff00000000000007000000",
+      "k": -4,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "d2888a420bd1????????0901????????5158096819b1",
+      "k": 6,
+      "k2": 12,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "adf800300bd1????????1201????????9a5812681ab1",
+      "k": 6,
+      "k2": 12,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "page_record_93",
+    "from": "page_records",
+    "add": 1488
+   },
+   {
+    "name": "slot_Page93_Handle",
+    "load": "page_record_93"
+   },
+   {
+    "name": "Page93_Handle",
+    "load": "slot_Page93_Handle"
+   },
+   {
+    "name": "Page_PopupTime",
+    "find": [
+     {
+      "how": "at",
+      "p": "6e670000000000000846????????000070b5",
+      "k": 8,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "000000000846????????000070b50446c0680128",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "012120460125????????014604a0",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "0023????????00212046????????0146b0a0????????0125",
+      "k": 10,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "PanelTask_OnEvent",
+    "find": [
+     {
+      "how": "at",
+      "p": "0000000000002de9f04f83b00529",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "00002de9f04f83b00529",
+      "k": 2,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "ParamGetRange_pitch",
+    "find": [
+     {
+      "how": "at",
+      "p": "70bd322088e06ff00b00",
+      "k": 6,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "322088e06ff00b00????????206070bd002080e0",
+      "k": 4,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "ParamGetRange_table",
+    "find": [
+     {
+      "how": "at",
+      "p": "0646dfe811f030012a016c016c01",
+      "k": 6,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "11f030012a016c016c01",
+      "k": 2,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "ParamGetRange_vari",
+    "find": [
+     {
+      "how": "at",
+      "p": "44f6????????70bd00bf????????????????70bd00bf",
+      "k": 10,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "44f6????????70bd00bf????????????????70bd00bf????????????????70bd00bf????????????????70bd00bf",
+      "k": 10,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "Param_Get",
+    "find": [
+     {
+      "how": "at",
+      "p": "400980bd0000b0b50d46a1f58271",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "0000b0b50d46a1f58271",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "1de04ff6ff70????????07b2????????002148463a46????????8246012148463a46????????00eb0a107a2102b24846",
+      "k": 22,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "8421????????3246????????0f2801f06287",
+      "k": 8,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Param_Set",
+    "find": [
+     {
+      "how": "at",
+      "p": "400980bd00002de9f04f81b02ded",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "80bd00002de9f04f81b02ded028b88b08b46a1f5",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "002228462346????????792128462246",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "a221002200233046????????a5214ff0ff323046",
+      "k": 8,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "PickStore_Get",
+    "find": [
+     {
+      "how": "at",
+      "p": "00000000000010b5ac2984464ff0",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "000010b5ac2984464ff0",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "1a21????????0022????????013007d0????????0f28",
+      "k": 8,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "632100222046????????064662210022",
+      "k": 6,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Popup_Show",
+    "find": [
+     {
+      "how": "at",
+      "p": "00000000000010b50c460146",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "0000000010b50c460146",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "17a84ff47a71????????27b0bde8f083",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "0020????????0146????????????????????????01201db0bde8f08f2a20????????3446",
+      "k": 16,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Resampler_Mono",
+    "find": [
+     {
+      "how": "at",
+      "p": "ab43bde8f08f10b584b0",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "bde8f08f10b584b0????????8e46????????1446",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "movw",
+      "p": "6047????????????????60474ef2254cc0f2",
+      "k": 2,
+      "k2": 6,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "Resampler_Stereo",
+    "find": [
+     {
+      "how": "at",
+      "p": "201a04b010bd10b584b096460a46",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "10bd10b584b096460a46",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "movw",
+      "p": "8f0cc0f2000c6047????????????????6047",
+      "k": 8,
+      "k2": 12,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "SampleInfo_ForPad",
+    "find": [
+     {
+      "how": "at",
+      "p": "f4d0????????f1e7????????f0b5????????4ff68c5c",
+      "k": 12,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "f1e7????????f0b5????????4ff68c5c????????4ff6c86e4ff660644ff6",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "4ff0ff312246????????2046????????08b1????????????????2146",
+      "k": 12,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "2046????????c0b1????????4ff0ff31????????2246????????2046????????08b1????????2046????????10b10121????????2046????????0120",
+      "k": 28,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Stretch_Init",
+    "find": [
+     {
+      "how": "at",
+      "p": "c0e90412704780b54ff4167cc1f8",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "704780b54ff4167cc1f8",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "cbf800100226????????dbf80000c4f8",
+      "k": 6,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "TopScreen_KeyDown",
+    "find": [
+     {
+      "how": "at",
+      "p": "642025640000b0b50446",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "25640000b0b50446????????0d46????????5d21",
+      "k": 4,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "UI_GetCurrentPage",
+    "find": [
+     {
+      "how": "at",
+      "p": "21007047000000000000????????????????b0f90c00",
+      "k": 10,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "00000000????????????????b0f90c0070470000",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "4f56c7f84451????????0128c7f84861",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "0e2801d0????????????????1138????????b0fa80f0",
+      "k": 8,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "UI_RequestBack",
+    "find": [
+     {
+      "how": "at",
+      "p": "0000????????????????????????0000000080b5????????????????????????????????4ff6",
+      "k": 18,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "0000000080b5????????????????????????????????4ff6fe734178",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "38b1????????04e020b24ff0ff31",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "204601b0f0bd????????0024204601b0",
+      "k": 6,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "UI_RequestPage",
+    "find": [
+     {
+      "how": "at",
+      "p": "00000000000010b50446012807d1",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "000010b50446012807d1",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "100228b12720????????????01b0f0bd",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "00220023????????????????????????????????????0d20????????6de0????????0120",
+      "k": 14,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "UI_RequestRebuild",
+    "find": [
+     {
+      "how": "at",
+      "p": "0121cde900126946????????02b080bd????????????????????????????????4ff6",
+      "k": 16,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "02b080bd????????????????????????????????4ff6fd73????????00294ff001010170",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "052f04d3042802dc????????01e0????????a762",
+      "k": 8,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "3b2803d1????????03e000bf3b20",
+      "k": 4,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "UI_SetTickInterval",
+    "find": [
+     {
+      "how": "at",
+      "p": "70bd00000000????????0128b8bf",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "00000000????????0128b8bf4ff0ff30",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "82b004466420????????0ca10122",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "00902046????????3220????????2046????????2eb010bd",
+      "k": 10,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "UI_UserActivity",
+    "find": [
+     {
+      "how": "at",
+      "p": "20462946????????355570bd10b5",
+      "k": 12,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "355570bd10b5????????????????????????????????0446a0b1",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "10b50446????????????????????????b4f90210????????d4e90123",
+      "k": 12,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "012080bd????????002080bd70b5",
+      "k": 4,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Voice_Release",
+    "find": [
+     {
+      "how": "at",
+      "p": "39007047000070b50446c06a",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "7047000070b50446c06a????????10280d46",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "03e028462146????????a01e18283ff6",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "4ff0ff312046????????0120b0bd0000",
+      "k": 6,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Voice_SetParam",
+    "find": [
+     {
+      "how": "at",
+      "p": "0dd319e6b0b5054600680028",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "19e6b0b5054600680028",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "481006214246????????d9f8cc091428",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "421a00206e90732158466d92????????6e9a74215846????????6d98",
+      "k": 12,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "Voice_SetParam_cont",
+    "from": "Voice_SetParam",
+    "add": 8
+   },
+   {
+    "name": "XPage_ctor",
+    "find": [
+     {
+      "how": "at",
+      "p": "08b0????????f0b581b0044641f6",
+      "k": 6,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "f0b581b0044641f638202518",
+      "k": 0,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "9c2105468719????????2846????????????????????????00f10801",
+      "k": 12,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "f081000070b50446b0f90000022827d001283bd141f66c20????????41f66c210546????????2846????????????????41f63822????????00f10801296000f5b47100f5c270a850????????????????a9632146",
+      "k": 40,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "g_audio_rx_buf",
+    "find": [
+     {
+      "how": "movw",
+      "p": "003000f50052????????0860????????0a6200f58042",
+      "k": 6,
+      "k2": 12,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "9003c4f20e00????????c4f20e03????????017841f00401",
+      "k": 6,
+      "k2": 14,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_bank_f_to_j",
+    "find": [
+     {
+      "how": "movw",
+      "p": "600101ebd071????????????????01eb8101c1eb2711857001f12501c170056280f8245004db",
+      "k": 6,
+      "k2": 10,
+      "add": 32
+     },
+     {
+      "how": "movw",
+      "p": "1040????????b0b5????????4ff41450????????0021002200256080????????????????256284f82450",
+      "k": 8,
+      "k2": 16,
+      "add": 32
+     }
+    ]
+   },
+   {
+    "name": "g_bank_key_index",
+    "find": [
+     {
+      "how": "movw",
+      "p": "600101ebd071????????????????01eb8101c1eb2711857001f12501c170",
+      "k": 6,
+      "k2": 10,
+      "add": 2
+     },
+     {
+      "how": "movw",
+      "p": "1040????????b0b5????????4ff41450????????0021002200256080",
+      "k": 8,
+      "k2": 16,
+      "add": 2
+     }
+    ]
+   },
+   {
+    "name": "g_bank_key_last",
+    "find": [
+     {
+      "how": "movw",
+      "p": "600101ebd071????????????????01eb8101c1eb2711857001f12501c170056280f82450",
+      "k": 6,
+      "k2": 10,
+      "add": 3
+     },
+     {
+      "how": "movw",
+      "p": "610202ebd172????????????????02eb8202a0eb02028b7002f12502ca700b6281f82430",
+      "k": 6,
+      "k2": 10,
+      "add": 3
+     }
+    ]
+   },
+   {
+    "name": "g_chrom_semis_lights",
+    "find": [
+     {
+      "how": "at",
+      "p": "7f02????????0400000005000000",
+      "k": 6,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "7f02????????040000000500000006000000070000000000000001000000",
+      "k": 6,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_chrom_semis_page",
+    "find": [
+     {
+      "how": "at",
+      "p": "0400000005000000060000000700000000000000010000000200000003000000fcfffffffdfffffffefffffffffffffff8fffffff9fffffffafffffffbffffff0400000005000000060000000700000000000000010000000200000003000000fcfffffffdfffffffefffffffffffffff8fffffff9fffffffafffffffbffffff9600",
+      "k": 64,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "fffff8fffffff9fffffffafffffffbffffff0400000005000000060000000700000000000000010000000200000003000000fcfffffffdfffffffefffffffffffffff8fffffff9fffffffafffffffbffffff9600000020000000",
+      "k": 18,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "0828e3d1e817????????????????????????05eb1070",
+      "k": 6,
+      "k2": 14,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "3046????????f817????????????????f26a07eb107020f0",
+      "k": 8,
+      "k2": 12,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_chrom_semis_pitch",
+    "find": [
+     {
+      "how": "at",
+      "p": "0400000005000000060000000700000000000000010000000200000003000000fcfffffffdfffffffefffffffffffffff8fffffff9fffffffafffffffbffffff0400000005000000060000000700000000000000010000000200000003000000fcfffffffdfffffffefffffffffffffff8fffffff9fffffffafffffffbffffff0400",
+      "k": 64,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "fffff8fffffff9fffffffafffffffbffffff0400000005000000060000000700000000000000010000000200000003000000fcfffffffdfffffffefffffffffffffff8fffffff9fffffffafffffffbffffff0400000005000000",
+      "k": 18,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "2a463346????????e817????????????????????????05eb1070????????20f0",
+      "k": 10,
+      "k2": 18,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_chrom_semis_trigger",
+    "find": [
+     {
+      "how": "at",
+      "p": "0001000001000400000005000000",
+      "k": 6,
+      "add": 0
+     },
+     {
+      "how": "at",
+      "p": "01000400000005000000",
+      "k": 2,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "0c28????????e817????????????????05eb107020f00f00",
+      "k": 8,
+      "k2": 12,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "4feaeb71????????????????06460beb1171",
+      "k": 4,
+      "k2": 8,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_icon_draw_ctx",
+    "find": [
+     {
+      "how": "movw",
+      "p": "e05148b10346????????????????002100220068",
+      "k": 6,
+      "k2": 10,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "0000000010b5????????0446????????0868",
+      "k": 6,
+      "k2": 12,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_pad_store",
+    "find": [
+     {
+      "how": "movw",
+      "p": "b040????????0000000010b5????????0021????????00220024????????46f26761",
+      "k": 12,
+      "k2": 18,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "2046059a????????????????4ff0ff31????????????????????50b0",
+      "k": 8,
+      "k2": 16,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_page_request_seen",
+    "find": [
+     {
+      "how": "movw",
+      "p": "704700000000????????4ff6ff72????????01894089914218bf0846",
+      "k": 6,
+      "k2": 14,
+      "add": 10
+     },
+     {
+      "how": "movw",
+      "p": "a2f86060d8d1????????????????????????0025????????02acaaf80e50a8f80c50a8f80e60a8f80860a8f80a60????adf80850",
+      "k": 6,
+      "k2": 14,
+      "add": 10
+     }
+    ]
+   },
+   {
+    "name": "g_param_store",
+    "find": [
+     {
+      "how": "movw",
+      "p": "f04381b00eb2????????91460f46????????7a2132469846",
+      "k": 6,
+      "k2": 14,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "0820????????????????2921????????42f228323046",
+      "k": 6,
+      "k2": 12,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_param_store_chrom_offset",
+    "find": [
+     {
+      "how": "movw",
+      "p": "e817????????????????????????05eb1070????????20f00f00281a51f82000f96a401ac0e01498",
+      "k": 6,
+      "k2": 18,
+      "add": 44
+     },
+     {
+      "how": "movw",
+      "p": "781c0d4632d0????????06aa????????02ab9b214ff0ff3000903046????????f817????????????????f26a07eb107020f0",
+      "k": 6,
+      "k2": 12,
+      "add": 44
+     }
+    ]
+   },
+   {
+    "name": "g_param_store_chrom_root",
+    "find": [
+     {
+      "how": "movw",
+      "p": "01d910bd00bf????????0cf10202????????def81c11511a48bf0c31",
+      "k": 6,
+      "k2": 14,
+      "add": 284
+     },
+     {
+      "how": "movw",
+      "p": "052864d1e817????????????????05eb107020f00f00d6f818112a1a481e????????0528????????51f822701bd8f16ad6f81c21791a891a4af6",
+      "k": 6,
+      "k2": 10,
+      "add": 284
+     }
+    ]
+   },
+   {
+    "name": "g_param_store_chrom_scale",
+    "find": [
+     {
+      "how": "movw",
+      "p": "01d910bd00bf????????0cf10202????????def81c11511a48bf0c31def81831013b002948bf",
+      "k": 6,
+      "k2": 14,
+      "add": 280
+     },
+     {
+      "how": "movw",
+      "p": "052864d1e817????????????????05eb107020f00f00d6f818112a1a481e",
+      "k": 6,
+      "k2": 10,
+      "add": 280
+     }
+    ]
+   },
+   {
+    "name": "g_pick_store",
+    "find": [
+     {
+      "how": "movw",
+      "p": "38686ff07f410022????????????????2a21????????0022????????0028386800f09380",
+      "k": 12,
+      "k2": 18,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "854214d1????????8421????????0022????????58b1",
+      "k": 4,
+      "k2": 10,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_rec_ctrl",
+    "find": [
+     {
+      "how": "movw",
+      "p": "00283ff4f6ae????????42f2dc07????????3621002290f8",
+      "k": 6,
+      "k2": 14,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "80b21c282ad1????????????????d5f85402a8b1",
+      "k": 6,
+      "k2": 10,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_rec_ctrl_source",
+    "from": "g_rec_ctrl",
+    "add": 600
+   },
+   {
+    "name": "g_redraw_flags",
+    "find": [
+     {
+      "how": "movw",
+      "p": "23463744????????????????7868????????0a8842f0",
+      "k": 8,
+      "k2": 14,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "41f66c21????????????????661860581780",
+      "k": 4,
+      "k2": 8,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_render_out_0",
+    "find": [
+     {
+      "how": "movw",
+      "p": "0e91????????????????????????????????????????????????0f91119991f82010",
+      "k": -8,
+      "k2": 18,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_render_out_1",
+    "find": [
+     {
+      "how": "movw",
+      "p": "0f91????????????????????????????????119991f820100729",
+      "k": -8,
+      "k2": 14,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_render_scratch_0",
+    "find": [
+     {
+      "how": "movw",
+      "p": "0e91????????????????????????????????????????????????0f91119991f82010",
+      "k": 2,
+      "k2": 22,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_render_scratch_1",
+    "find": [
+     {
+      "how": "movw",
+      "p": "00bf00008046????????????????????????0e91????????????????????????????????????????0f91????????????????????????????????1199",
+      "k": 20,
+      "k2": 36,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_rx_force_word1",
+    "find": [
+     {
+      "how": "movw",
+      "p": "00002de9f041????????????????5b6e002b18bfbde8",
+      "k": 6,
+      "k2": 10,
+      "add": 100
+     },
+     {
+      "how": "movw",
+      "p": "0222????????????????????????????????496e????????002908bf4200",
+      "k": -4,
+      "k2": 2,
+      "add": 100
+     }
+    ]
+   },
+   {
+    "name": "g_sys_time_ms",
+    "find": [
+     {
+      "how": "word",
+      "p": "bff34f8f????????????????10e000e0bf270900",
+      "k": 8,
+      "add": 0
+     },
+     {
+      "how": "word",
+      "p": "f3f0401c00fb032010bd",
+      "k": 14,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "g_voice_slots",
+    "find": [
+     {
+      "how": "movw",
+      "p": "d7f81700????????5821????????????????c06a0628",
+      "k": 4,
+      "k2": 10,
+      "add": 0
+     },
+     {
+      "how": "movw",
+      "p": "1040????????000010b5????????????????2046????????002840f0",
+      "k": 10,
+      "k2": 14,
+      "add": 0
+     }
+    ]
+   },
+   {
+    "name": "operator_delete",
+    "find": [
+     {
+      "how": "at",
+      "p": "b0bd000000000000????????????????0a68",
+      "k": 8,
+      "add": 1
+     },
+     {
+      "how": "at",
+      "p": "00000000????????????????0a68002a48bf7047",
+      "k": 4,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "08bf044615b12846????????????????0df11408",
+      "k": 8,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "c8f80c002046????????2846????????????????40b0????????0000",
+      "k": 12,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "operator_new",
+    "find": [
+     {
+      "how": "at",
+      "p": "000010b50446002808bf",
+      "k": 2,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "8040????????70b50446b0f90000022835d0012849d13820????????38210546????????????????????????0830????????2872",
+      "k": 24,
+      "add": 1
+     },
+     {
+      "how": "bl",
+      "p": "4ff496712046????????????????0026????????6662",
+      "k": 30,
+      "add": 1
+     }
+    ]
+   },
+   {
+    "name": "slot_ChromPage_BuildLayout",
+    "wordof": "ChromPage_BuildLayout"
+   },
+   {
+    "name": "slot_ChromPage_OnKey",
+    "wordof": "ChromPage_OnKey"
+   },
+   {
+    "name": "slot_ChromPage_OnPadDown",
+    "wordof": "ChromPage_OnPadDown"
+   },
+   {
+    "name": "slot_TopScreen_KeyDown",
+    "wordof": "TopScreen_KeyDown"
+   },
+   {
+    "name": "vt_XPage",
+    "find": [
+     {
+      "how": "movw",
+      "p": "7047000000000000b0b50446????????41f63822????????00f10801216000f5b4712546",
+      "k": 12,
+      "k2": 20,
+      "add": 8
+     },
+     {
+      "how": "movw",
+      "p": "0000b0b50446????????25464ff4d052????????00f1080145f8",
+      "k": 6,
+      "k2": 16,
+      "add": 8
+     }
+    ]
+   }
+  ],
+  "imports": [
+   "operator_new",
+   "operator_delete",
+   "XPage_ctor",
+   "vt_XPage",
+   "Page93_Handle",
+   "UI_RequestPage",
+   "UI_RequestBack",
+   "UI_RequestRebuild",
+   "UI_SetTickInterval",
+   "UI_UserActivity",
+   "UI_GetCurrentPage",
+   "g_page_request_seen",
+   "g_redraw_flags",
+   "Ctx_Begin",
+   "Ctx_End",
+   "Ctx_SetInk",
+   "Ctx_SetFont",
+   "Ctx_FillRect",
+   "Ctx_FrameRect",
+   "DrawText",
+   "DrawTextCentred",
+   "Ctx_DrawTextRight",
+   "Popup_Show",
+   "Page_PopupTime",
+   "Key_IsHeld",
+   "g_param_store",
+   "g_param_store_chrom_offset",
+   "g_param_store_chrom_scale",
+   "g_param_store_chrom_root",
+   "Param_Get",
+   "Param_Set",
+   "g_pad_store",
+   "PadStore_Get",
+   "PadStore_Set",
+   "g_pick_store",
+   "PickStore_Get",
+   "SampleInfo_ForPad",
+   "ChromPage_OnKey",
+   "ChromPage_OnPadDown",
+   "ChromPage_BuildLayout",
+   "g_chrom_semis_trigger",
+   "g_chrom_semis_pitch",
+   "g_chrom_semis_page",
+   "g_chrom_semis_lights",
+   "Pad_Trigger_pitch_calls_lo",
+   "Pad_Trigger_pitch_calls_hi",
+   "g_voice_slots",
+   "Voice_Release",
+   "Voice_SetParam",
+   "Voice_SetParam_cont",
+   "Stretch_Init",
+   "Resampler_Stereo",
+   "Resampler_Mono",
+   "g_render_out_0",
+   "g_render_scratch_0",
+   "g_render_out_1",
+   "g_render_scratch_1",
+   "TopScreen_KeyDown",
+   "g_bank_key_index",
+   "g_bank_key_last",
+   "g_bank_f_to_j",
+   "ExtSource_Toggle",
+   "Audio_RxHandler_cont",
+   "g_audio_rx_buf",
+   "g_rx_force_word1",
+   "g_rec_ctrl_source",
+   "g_sys_time_ms",
+   "PanelTask_OnEvent",
+   "g_icon_draw_ctx"
+  ],
+  "flash": 1611137024,
+  "payload_ram": 2214461440,
+  "scatter_table": 2653952
+ }
 }

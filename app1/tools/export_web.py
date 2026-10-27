@@ -23,6 +23,7 @@ import os
 import subprocess
 import sys
 
+import anchors
 import make_image as mi
 import package_web
 
@@ -76,6 +77,31 @@ def file_changes(changes):
     for addr, old, new, why in changes:
         out.append({"offset": mi.file_offset(addr), "old": old.hex(), "new": new.hex(), "why": why})
     return out
+
+
+class Recorder(dict):
+    """The payload symbols, noting which ones a patch's changes use (its entry points)"""
+
+    def __init__(self, syms):
+        super().__init__(syms)
+        self.read = set()
+
+    def __getitem__(self, name):
+        self.read.add(dict.__getitem__(self, name))
+        return dict.__getitem__(self, name)
+
+
+def check_templates(patches, vals):
+    """Each relocatable change, at the v5.52 addresses, is the change make_image.py makes"""
+    for p in patches:
+        for t, c in zip(p["relocatable"], p["changes"]):
+            at = anchors.value(t["at"], vals, None)
+            old = anchors.encode(t["old"], vals, at)
+            new = bytes(anchors.encode(t["new"], vals, at))
+            want_old = bytes.fromhex(c["old"])
+            if (mi.file_offset(at) != c["offset"] or new.hex() != c["new"] or len(old) != len(want_old)
+                    or any(b is not None and b != w for b, w in zip(old, want_old))):
+                sys.exit(f"[{p['id']}] the template for {c['offset']:#x} ({c['why']}) differs from make_image.py")
 
 
 def apply(original, data, ids):
@@ -137,13 +163,26 @@ def main(argv):
                               "why": "start-up: copy the payload to SDRAM"})
         i = j
 
-    patches = []
+    patches, sites, names = [], {}, set()
+    fw = anchors.load(original)
+    graph, sym_names = anchors.payload_graph(os.path.join(mi.PAYLOAD_BUILD, "payload.elf"), payload)
     for p in mi.PATCHES:
         if p.id not in PUBLIC:
             continue
-        changes = p.changes(syms) if callable(p.changes) else p.changes
+        used = Recorder(syms)
+        changes = p.changes(used) if callable(p.changes) else p.changes
+        templates = [dict(anchors.template(a, old, new), why=why) for a, old, new, why in changes]
+        imports = anchors.imports_reached(graph, sym_names, used.read) if p.payload else []
+        for a, old, _, _ in changes:
+            if not mi.PAYLOAD_RAM <= a < mi.PAYLOAD_RAM_LIMIT:
+                sites[a] = len(old)
+        names |= anchors.anchor_names(templates) | set(imports)
         patches.append({"id": p.id, **PUBLIC[p.id], "group": p.group, "payload": p.payload,
-                        "warning": p.warning, "doc": p.doc, "changes": file_changes(changes)})
+                        "warning": p.warning, "doc": p.doc, "changes": file_changes(changes),
+                        "relocatable": templates, "imports": imports})
+    import_names = [n for n, _ in anchors.read_imports()]
+    rules = anchors.make_anchors(fw, names | set(import_names), sites)
+    check_templates(patches, anchors.known_addresses(sites))
     commit = subprocess.run(["git", "-C", mi.REPO, "rev-parse", "--short", "HEAD"],
                             capture_output=True, text=True).stdout.strip()
     dirty = subprocess.run(["git", "-C", mi.REPO, "status", "--porcelain", "app1/"],
@@ -159,6 +198,9 @@ def main(argv):
                     "imports": syms["roland_imports"] - mi.PAYLOAD_RAM},
         "payload_setup": payload_setup,
         "patches": patches,
+        # For other versions: how to find each address (anchors.py) and the import table's order
+        "resolve": {"anchors": rules, "imports": import_names, "flash": mi.FLASH_BASE,
+                    "payload_ram": mi.PAYLOAD_RAM, "scatter_table": mi.SCATTER_TABLE_NEW - mi.FLASH_BASE},
     }
 
     n = 0
