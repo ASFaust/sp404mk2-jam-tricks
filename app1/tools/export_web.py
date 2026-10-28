@@ -27,7 +27,8 @@ import anchors
 import make_image as mi
 import package_web
 
-# The patches the website offers, with the text users see. The CPU meter stays out of the website selection.
+# The patches the website offers, with the text users see. Diagnostic patches (cpu-meter,
+# tuner-probes) stay out of the website selection.
 PUBLIC = {
     "no-efx-timeout": {
         "name": "Effect screen stays open",
@@ -67,7 +68,7 @@ PUBLIC = {
                 "the nearest note and how many cents sharp or flat you are. It listens to the "
                 "SP's output, input effects included, so keep other sounds quiet while tuning; "
                 "EXT SOURCE is switched on so the input is heard. EXIT or the same two buttons "
-                "take you back. Pressing VALUE steps through a few diagnostic screens and back.",
+                "take you back.",
     },
 }
 

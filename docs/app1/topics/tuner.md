@@ -72,7 +72,7 @@ What the code says:
   `InputFxOnOff`, `Input Bus`.
 
 The device has to tell us which word is the instrument input and whether it's before or after
-the input FX and the input level. **Probe** (in the tuner patch): VALUE press on the tuner
+the input FX and the input level. **Probe** (patch `tuner-probes`): VALUE press on the tuner
 page switches to 16 bars, the peak of every receive channel (pairs L R, word numbers under
 them, 6 dB per step), and the word the recorder uses now. To do:
 1. Guitar into the input, play: which bars move?
@@ -117,8 +117,10 @@ tested on the device.
 
 ## Diagnostic views
 
-VALUE press cycles: tuner → input probe → sample probe (3 views, `app1/payload/sprobe.c`, see
-[sample-loop.md](sample-loop.md)) → tuner.
+Only with patch `tuner-probes` (the tuner plus these views; diagnostic, offered by
+`make_image.py` but not on the website, like `cpu-meter`): VALUE press cycles tuner → input
+probe → sample probe (3 views, `app1/payload/sprobe.c`, see [sample-loop.md](sample-loop.md))
+→ tuner. Plain `tuner` ignores VALUE press (flag `tuner_probes` in `tuner.c`).
 
 ## Next steps
 

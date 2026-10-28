@@ -350,8 +350,13 @@ PATCHES = [
     Patch("vari4-stretch", "Time stretch: a 4th VARI option with a better stretcher",
           "docs/app1/topics/time-stretch.md", vari4_stretch,
           experimental=True, payload=True, warning=VARI4_WARNING),
-    Patch("tuner", "Tuner: BANK A + BANK B shows the pitch of the mix (VALUE press: input probe, sample probe)",
-          "docs/app1/topics/tuner.md", tuner, experimental=True, payload=True),
+    Patch("tuner", "Tuner: BANK A + BANK B shows the pitch of the mix",
+          "docs/app1/topics/tuner.md", tuner, experimental=True, group="tuner", payload=True),
+    Patch("tuner-probes", "Tuner + probes: VALUE press on the tuner cycles input probe, sample probe",
+          "docs/app1/topics/tuner.md",
+          lambda sym: tuner(sym) + [(sym["tuner_probes"], b"\0", b"\1",
+                                     "payload flag tuner_probes: VALUE press cycles the probe views")],
+          experimental=True, group="tuner", payload=True, diagnostic=True),
 ]
 
 

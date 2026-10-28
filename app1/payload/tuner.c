@@ -1,7 +1,8 @@
 /* Guitar tuner (goal #5): BANK A + BANK B on the top screen opens it (patch "tuner",
  * docs/app1/topics/tuner.md). The page (page.c) shows the pitch of the SP's mix (pitch.c), so
- * nothing else should play while tuning. VALUE press cycles through the diagnostic views:
- * the input probe, then the sample probe (sprobe.c).
+ * nothing else should play while tuning. With patch "tuner-probes" (diagnostic, not on the
+ * website) VALUE press cycles through the diagnostic views: the input probe, then the sample
+ * probe (sprobe.c).
  *
  * The combo works like Roland's BANK D + BANK E for DJ mode (TopScreen_HandleKey, cases
  * 0x28/0x29): the first bank key has already switched the bank by the time the second
@@ -16,6 +17,9 @@
 #include "ram.h"
 
 void sprobe_draw(cpage_ctx *ctx, int view);    /* sprobe.c */
+
+/* Set to 1 in the image by patch "tuner-probes" (make_image.py) */
+const volatile uint8_t tuner_probes = 0;
 
 #define REG(a) (*(volatile uint32_t *)(a))
 
@@ -107,7 +111,7 @@ static void tuner_open(void)
         MAGIC_REG = MAGIC;
         VIEW = 0;
     }
-    if (VIEW >= N_VIEWS)
+    if (VIEW >= N_VIEWS || !tuner_probes)
         VIEW = 0;
     HOLD = 0;
     N_RECENT = 0;
@@ -317,7 +321,7 @@ static void any_draw(cpage_ctx *ctx)
 
 static int tuner_key_down(int key)
 {
-    if (key == KEY_VALUE_PRESS) {
+    if (key == KEY_VALUE_PRESS && tuner_probes) {
         VIEW = (VIEW + 1) % N_VIEWS;
         DRAWN = 0xFFFFFFFEu;
         for (int k = 0; k < 16; k++)
