@@ -12,26 +12,27 @@ working when Roland releases a new version with small changes.
 
 ## State (2026-10-28, evening)
 
-- **On branch `web-resolver`, not on the site yet:** the page uses the resolver for any file it
+- **Live on `main` (merged from `web-resolver`, 2026-10-28):** the page uses the resolver for any file it
   doesn't know by SHA-256, offers the patches it found (others greyed out) and says the result
   is untested and that updating to 5.52 is the safer way. Tested offline only: headless
   Chrome builds the same bytes as `resolve()` in Node for v5.51, v4.07 and v2.00, and the
   same as `make_image.py` for v5.52. The payload changes below (state out of region 9, `tuner`
-  loading `g_param_store`) **need a device test on v5.52 before this goes to `main`.**
+  loading `g_param_store`) work on the device with v5.52 (user, 2026-10-28). Other
+  releases through the resolver are untested on the device.
 - **Jam Tricks v1.0** (name of this release, user, 2026-10-28; `JAM_TRICKS_VERSION` in
   `make_image.py`). Every image ends with the marker `+jam-tricks-v1.0`, and the page refuses
   an input that has it (or, from before the marker, the payload's `IMP1` table at the payload
   offset): patching a patched image again would stack changes nobody checked. Payload builds
-  also show the version after Roland's on both screens that print it (`hooks.S`,
+  also show the version after Roland's, shortened to "5.52+jt1.0" (the full marker was too
+  long, user, 2026-10-28), on both screens that print it (`hooks.S`,
   `version_mark` in `make_image.py`): "Version: %s" (`FUN_8014b120`) and "APP1: %s (%s)"
   (`FUN_800f72d8`, an info screen). Roland's string `5.52` stays: its first four characters
   also go out as the firmware version over MIDI SysEx (`FUN_80115db8`) and USB
-  (`FUN_800f6f80`). Not yet seen on the device: which screens these are, and whether the
-  longer text fits.
-- **Live on the user's site (`main`), v5.52 only**, tested by the user: page `tools/sp404mk2-patcher/`
+  (`FUN_800f6f80`). "+jt1.0" fits on the device (user, 2026-10-28).
+- **Before the resolver, `main` was v5.52 only**, tested by the user: page `tools/sp404mk2-patcher/`
   (URL kept from before the name), section "Tools" on the home page. Offers `no-efx-timeout`,
   `scale-pads` / `scale-pads-wide`, `chrom-voices`, `vari4-stretch`, `tuner`.
-- **Why v5.52 only:** the page recognises the firmware by SHA-256 and writes bytes at fixed
+- **Why v5.52 only before the resolver:** the page recognised the firmware by SHA-256 and writes bytes at fixed
   file offsets from v5.52. Any other file is refused. 5.52 is Roland's newest release, so
   users of older versions can update first; the resolver matters once 5.53 appears.
 - **Done in the firmware project:** the payload's import table (`app1/payload/imports.h`, see
@@ -67,7 +68,7 @@ working when Roland releases a new version with small changes.
 
 1. ~~**Move our state out of MPU region 9.**~~ Done (2026-10-28, offline): `ram.h` puts it in
    the top 8 KB of the payload's 64 KB (`0x83FEE000`..), normal cacheable memory (only the CPU
-   touches it); `payload.ld` asserts the code ends below. **Device test pending.**
+   touches it); `payload.ld` asserts the code ends below. Works on the device (2026-10-28).
 2. ~~**Pattern manifest.**~~ Done: `anchors.py` (rules and how they are derived in its docstring).
 3. ~~**Resolver in `patcher.js`**~~ Done: `resolve(original, data)` returns a plan for
    `applyPatches` and a per-patch report. Not yet called by `app.js`.
@@ -82,7 +83,7 @@ working when Roland releases a new version with small changes.
    bytes are exact). `tuner` (done 2026-10-28, offline): the patch now replaces 14 bytes,
    including the `movw`/`movt` that builds `g_param_store`, whose old bytes must build this
    release's `g_param_store` exactly; `audio_rx_orig` loads it from the import table and
-   continues at `0x1CA8E`. **Device test pending.** Struct offsets: field imports are found
+   continues at `0x1CA8E`. Works on the device (2026-10-28). Struct offsets: field imports are found
    through a load or store with the offset kept exact in the pattern; still assumed rather than
    checked: `g_rec_ctrl_source` (`g_rec_ctrl + 0x258`) and offsets inside the payload's C code
    (e.g. voice `+0x14274`). The four render-buffer imports have one reference each in v5.52, so
@@ -92,9 +93,8 @@ working when Roland releases a new version with small changes.
    patch on the device.
 7. ~~**Page**~~ Done on `web-resolver`: see State.
 
-Where to resume (2026-10-28): flash a v5.52 build of `web-resolver` with every patch and try
-each one (tuner, chromatic page, scale pads, VARI Plus, CPU meter for the state move), then
-merge to `main`. Struct offsets inside the payload's C code are still assumed (see 5).
+Where to resume (2026-10-28): merged to `main` after the v5.52 device test. Next: when Roland
+releases 5.53, resolve it, flash, and try each patch on the device. Struct offsets inside the payload's C code are still assumed (see 5).
 
 Whenever a patch changes: run `python3 app1/tools/export_web.py web`, test it, and commit the regenerated manifest
 and `web/standalone.html` with the source change. The export records the source revision

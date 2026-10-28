@@ -10,7 +10,8 @@ notes and tools for understanding its APP1 main application.
 - **Effect screen:** stays open until EXIT.
 
 The musical features have been tested on a device with firmware **5.52**. The
-CPU meter is an optional development aid. Future firmware versions are not supported yet.
+CPU meter is an optional development aid. For other firmware versions the patcher looks for
+the patch sites by pattern and offers what it finds; those builds are untested on a device.
 
 Use the [published browser patcher](https://asfaust.github.io/tools/sp404mk2-patcher/).
 The website loads the complete patcher from this repository when the page opens.

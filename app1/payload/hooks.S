@@ -109,7 +109,7 @@ audio_rx_orig:
         .ltorg
 
 /* The Jam Tricks version after Roland's wherever the firmware shows it, as in
-   "Version: 5.52+jam-tricks-v1.0". Roland's own string stays as it is: the first four
+   "Version: 5.52+jt1.0" (short to fit the screen). Roland's own string stays as it is: the first four
    characters also go out over MIDI and USB (SysEx reply, FUN_80115db8 and FUN_800f6f80).
    Both formats were loaded with 'adr', which can't reach us, so each site jumps here instead
    and continues after the replaced instructions with the same registers. JAM_TRICKS_VERSION
@@ -153,8 +153,8 @@ hook_app1_line:
         .section .rodata.str.version, "a"
         .global version_text_fmt, app1_line_fmt
 version_text_fmt:
-        .ascii  "Version: %s+jam-tricks-v", JAM_TRICKS_VERSION
+        .ascii  "Version: %s+jt", JAM_TRICKS_VERSION
         .byte   0
 app1_line_fmt:
-        .ascii  "APP1: %s+jam-tricks-v", JAM_TRICKS_VERSION, " (%s)"
+        .ascii  "APP1: %s+jt", JAM_TRICKS_VERSION, " (%s)"
         .byte   0

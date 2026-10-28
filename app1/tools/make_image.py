@@ -308,7 +308,7 @@ CPAGE_HOST_ID = 93
 
 
 def version_mark(sym):
-    """'+jam-tricks-v1.0' after Roland's version on both screens that show it (hooks.S). Part
+    """'+jt1.0' after Roland's version on both screens that show it (hooks.S). Part
     of every patch with a payload; patches without one have no code to put it there."""
     return [
         (0x8014B13E, bytes.fromhex("47f220606d46c8f22e00"),

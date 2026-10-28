@@ -23,8 +23,10 @@ python3 app1/tools/make_image.py --only no-efx-timeout,scale-pads,chrom-voices,v
 ```
 
 The builder checks the original SHA-256 and every replaced byte. Output goes to
-`app1/build/SP404MKII_APP1.bin`, which is ignored by Git. `scale-pads` and
-`scale-pads-wide` are alternatives. With no selection, only `no-efx-timeout` is enabled.
+`app1/build/SP404MKII_APP1.bin`, which is ignored by Git. To build straight onto an SD card,
+`python3 app1/tools/sdflash.py` opens a window to pick the card and patches; it formats the
+card (after asking), writes the image, and checks it with `fsck.fat` and a read-back.
+`scale-pads` and `scale-pads-wide` are alternatives. With no selection, only `no-efx-timeout` is enabled.
 Installation and recovery: [patching.md](../docs/app1/patching.md).
 
 ## Browser patcher
