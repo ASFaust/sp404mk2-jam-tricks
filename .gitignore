@@ -1,5 +1,6 @@
 # Locally supplied firmware and generated analysis/build artifacts
 resources/
+firmware/
 app1/build/
 app1/ghidra/
 app1/proto/stretch/work/

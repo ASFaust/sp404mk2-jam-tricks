@@ -77,5 +77,6 @@ step (`resources/repos/tallfree/image/make_image.py`).
 
 - Not yet confirmed on the device (as of writing): select projects several times, change
   INPUT SETTING, power off and on, and check that the last project comes back.
-- Payload state (`ram.h`) still lives in region 9's tail (`0x83FFBF60`..). That's fine, but
-  writable globals in the RAM copy would now be possible with a zero-init entry. Not done.
+- Payload state (`ram.h`) moved from region 9's tail (`0x83FFBF60`..) to the top 8 KB of our
+  range (`0x83FEE000`..) on 2026-10-28 (web-patcher.md); not yet tested on the device.
+  Writable globals in the RAM copy would also be possible with a zero-init entry. Not done.

@@ -8,9 +8,8 @@
  * timestamp and which may stop while the core sleeps. hook_panel_event runs on the panel
  * (UI) task's tick and redraws at most every 100 ms.
  *
- * The payload has no writable globals, so the meter's four words live at the end of the
- * non-cacheable SDRAM region 0x83FF0000..0x84000000 (MPU region 9), which the firmware only
- * uses up to 0x83FFBF58 (nothing refers to the rest). See METER_RAM in hooks.S too.
+ * The payload has no writable globals, so the meter's words live in METER_RAM (ram.h).
+ * See METER_RAM in hooks.S too.
  */
 #include <stdint.h>
 

@@ -285,7 +285,7 @@ def read_imports():
 # reached through a pointer.
 IMPORT_RULES = {
     "Voice_SetParam_cont": {"from": "Voice_SetParam", "add": 8},
-    "Audio_RxHandler_cont": {"from": "0001CA80", "add": 0xB},
+    "Audio_RxHandler_cont": {"from": "0001CA80", "add": 0xF},
     # Three page handlers are identical apart from their (masked) addresses: take page 93's
     # from its record instead.
     "Page93_Handle": {"load": "slot_Page93_Handle"},
@@ -357,7 +357,8 @@ TEMPLATES = {
     0x800F8268: {"at": ["800F8222", 0x46], "old": "mask"},    # replaced: its addresses needn't match
     0x800DBDC4: {"old": "mask"},                # Roland's two bl offsets: replaced, not checked
     0x800A2C98: {"at": ["Voice_SetParam", -1], "new": jump_via_word},
-    0x0001CA80: {"new": jump_via_word},
+    # the movw/movt must build this release's g_param_store: audio_rx_orig loads it from the imports
+    0x0001CA80: {"old": [{"hex": "f0b581b00446"}, {"mov32": [0, ["g_param_store", 0]]}], "new": jump_via_word},
 }
 
 

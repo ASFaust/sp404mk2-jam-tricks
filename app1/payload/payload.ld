@@ -7,7 +7,7 @@
    0x83FE0000..0x83FF0000 is in the gap between the looper/skip-back buffer (ends 0x83F7A424)
    and MPU region 9 that nothing in the firmware refers to. Normal cacheable memory, MPU
    region 8. The copy is plain: writable globals would be possible but aren't set up (no
-   zero-init), so state still lives in ram.h's blocks.
+   zero-init), so state lives in ram.h's blocks in the top 8 KB, 0x83FEE000..0x83FF0000.
 
    The import table (imports.h) comes first, so it starts at 0x83FE0000. */
 SECTIONS
@@ -22,6 +22,6 @@ SECTIONS
   payload_ram_end = .;
   .writable : { *(.data*) *(.bss*) *(COMMON) }
   ASSERT(SIZEOF(.writable) == 0, "payload must not have writable globals")
-  ASSERT(payload_ram_end <= 0x83FF0000, "payload doesn't fit in its 64 KB of SDRAM")
+  ASSERT(payload_ram_end <= 0x83FEE000, "payload code runs into ram.h's state (PAYLOAD_RAM_START)")
   /DISCARD/ : { *(.ARM.attributes) *(.comment) *(.ARM.exidx*) }
 }

@@ -81,7 +81,7 @@
     X(g_bank_key_last,              0x8059259B) \
     X(g_bank_f_to_j,                0x805925B8) \
     X(ExtSource_Toggle,             0x80134A99) \
-    X(Audio_RxHandler_cont,         0x0001CA8B) /* after the 10 bytes tuner replaces */ \
+    X(Audio_RxHandler_cont,         0x0001CA8F) /* after the 14 bytes tuner replaces */ \
     X(g_audio_rx_buf,               0x20008000) \
     X(g_rx_force_word1,             0x82E011A8) \
     X(g_rec_ctrl_source,            0x82E0E974) \

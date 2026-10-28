@@ -70,8 +70,9 @@
       <li>Only the main program (<code>SP404MKII_APP1.bin</code>) changes. The sound chip’s
         firmware (<code>SP404MKII_APP0.bin</code>) is never touched.</li>
       <li>The page checks every byte it changes against what it expects to find, and builds
-        nothing if the firmware differs. For now it works with Roland’s version 5.52 only;
-        support for later versions is in progress.</li>
+        nothing if the firmware differs. The patches are tested on Roland’s version 5.52.
+        For another version the page looks for the places each patch needs and offers the
+        patches it finds, marked as untested.</li>
       <li>Some patches store settings in your projects that an SP-404MKII without the patch
         reads differently. Those patches say so above.</li>
       <li>This is an independent project, not made or supported by Roland. Use it at your own

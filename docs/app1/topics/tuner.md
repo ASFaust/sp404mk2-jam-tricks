@@ -87,13 +87,13 @@ eight. Decision: tune from word 0 and don't mute anything for now.
 
 ## Pitch detection (stage 2, `app1/payload/pitch.c`)
 
-- **Capture:** the patch replaces the first 10 bytes of `Audio_RxHandler` (ITCM `0x1CA80`)
+- **Capture:** the patch replaces the first 14 bytes of `Audio_RxHandler` (ITCM `0x1CA80`)
   with a jump to `hook_audio_rx`. While the tuner is open, that adds L + R of word 0,
   averages pairs of frames (24 kHz), writes them into a 2048-sample ring (`PITCH_RAM`), then
   runs the replaced instructions (`audio_rx_orig`, `hooks.S`) and continues in Roland's code.
 - **Detection** (revised 2026-10-26 after the first test: CPU-heavy and twitchy), on the UI
   tick (every 50 ms):
-  - buffers from Roland's heap while the tuner is open (`PITCH_RAM` is non-cacheable; the
+  - buffers from Roland's heap while the tuner is open (`PITCH_RAM` was non-cacheable until 2026-10-28; the
     first version's inner loops ran there and were most of the cost);
   - YIN at 12 kHz (pairs averaged), 512-sample window, stopping at the first dip under 0.15
     once it has passed its minimum (else the deepest dip if under 0.2, else "unsure"); then

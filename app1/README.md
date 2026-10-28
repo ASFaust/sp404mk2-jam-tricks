@@ -8,9 +8,15 @@ packages listed in [their README](proto/stretch/README.md).
 ## Firmware input and builds
 
 Obtain the original v5.52 system update from Roland and unpack APP1 into
-`resources/firmware/sp404mk2_sys_v552/SP404MKII_APP1.bin`, or point to a local copy:
+`resources/firmware/sp404mk2_sys_v552/SP404MKII_APP1.bin`, or point to a local copy.
+Roland serves every release as `https://static.roland.com/assets/media/zip/sp404mk2_sys_vNNN.zip`
+(NNN = 200, 201, 300, 301, 302, 404–407, 500, 501, 550, 551, 552). Keep the zips in the
+ignored `firmware/` directory; older releases are only needed for `resolve_bench.mjs`.
 
 ```sh
+curl -fLO --output-dir firmware https://static.roland.com/assets/media/zip/sp404mk2_sys_v552.zip
+unzip firmware/sp404mk2_sys_v552.zip -d resources/firmware
+
 export SP404_APP1=/absolute/path/to/SP404MKII_APP1.bin
 python3 app1/tools/make_image.py --list
 python3 app1/tools/make_image.py --only no-efx-timeout,scale-pads,chrom-voices,vari4-stretch,tuner

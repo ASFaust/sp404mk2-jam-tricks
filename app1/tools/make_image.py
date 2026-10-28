@@ -313,11 +313,11 @@ def tuner(sym):
     return custom_pages(sym) + [
         (0x8022CE74, word(0x801839B9), word(sym["hook_top_key_down"] | 1),
          "top screen vtable slot 0x18 (key down) -> hook_top_key_down (BANK A + B)"),
-        (0x0001CA80, bytes.fromhex("f0b581b0044640f6d010"),
-         bytes.fromhex("dff800f0") + word(sym["hook_audio_rx"] | 1) + bytes.fromhex("00bf"),
-         "Audio_RxHandler (ITCM): 'push; sub sp; mov r4, r0; movw r0' -> 'ldr.w pc, [pc]' + "
-         "address of hook_audio_rx + nop (receive word 0 into the tuner's ring; audio_rx_orig "
-         "runs the four and continues at 0x1CA8A)"),
+        (0x0001CA80, bytes.fromhex("f0b581b0044640f6d010c8f2e020"),
+         bytes.fromhex("dff800f0") + word(sym["hook_audio_rx"] | 1) + bytes.fromhex("00bf00bf00bf"),
+         "Audio_RxHandler (ITCM): 'push; sub sp; mov r4, r0; movw/movt r0, g_param_store' -> "
+         "'ldr.w pc, [pc]' + address of hook_audio_rx + nops (receive word 0 into the tuner's "
+         "ring; audio_rx_orig does the same and continues at 0x1CA8E)"),
     ]
 
 

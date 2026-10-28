@@ -91,16 +91,18 @@ voice_set_param_orig:
 
         .ltorg
 
-/* Roland's Audio_RxHandler (ITCM 0x1CA80), whose first 10 bytes the tuner patch replaced with
-   a jump to hook_audio_rx (pitch.c): run those four instructions here, then continue at
-   0x1CA8A (the movt that completes r0). */
+/* Roland's Audio_RxHandler (ITCM 0x1CA80), whose first 14 bytes the tuner patch replaced with
+   a jump to hook_audio_rx (pitch.c): do what they did here, then continue at 0x1CA8E. The last
+   two built r0 = g_param_store with movw/movt; that address differs between releases, so it
+   comes from the import table. */
         .global audio_rx_orig
         .thumb_func
 audio_rx_orig:
         push    {r4, r5, r6, r7, lr}
         sub     sp, #4
         mov     r4, r0
-        movw    r0, #0x9d0
+        ldr     r0, =imp_g_param_store
+        ldr     r0, [r0]
         ldr     r12, =imp_Audio_RxHandler_cont  @ r12 is free here, as above
         ldr.w   pc, [r12]
 

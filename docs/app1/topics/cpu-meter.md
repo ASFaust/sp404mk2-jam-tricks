@@ -33,11 +33,12 @@ Facts it relies on:
 - **The cycle counter is not used for time:** Roland reads it as a timestamp
   (`SeqClock_Tick`, never write it), and it probably stops during WFI (which would explain
   Tallfree's "out by ninefold").
-- The payload can't have writable globals; the meter's four words live at `0x83FFFFC0`. The
-  boot code makes `0x83FF0000..0x84000000` MPU region 9, normal **non-cacheable** memory
-  (flash `0x600804EA`); the linker fills it only up to `0x83FFBF58` and nothing in the firmware
-  refers to the rest, so its last 16 KB are free. Non-cacheable suits values shared between
-  the idle hook (handler mode) and the panel task.
+- The payload can't have writable globals; the meter's words live in `METER_RAM` (`ram.h`).
+  Until 2026-10-28 that was `0x83FFFFC0`, in the free tail of MPU region 9 (normal
+  **non-cacheable**, `0x83FF0000..0x84000000`, set up at flash `0x600804EA`; the linker fills
+  it up to `0x83FFBF58` in v5.52, more in each release). Now it is in the payload's own range,
+  cacheable: the idle hook (handler mode) and the panel task run on the same core, so they see
+  the same cached values.
 - First attempt kept them in the DWT comparator registers (`DWT_COMP0..3`): on the device they
   didn't keep values (dotted row), so the debug block isn't usable for storage.
 - The screen surface is `**0x80591B48` (`g_icon_draw_ctx`); its bitmap (`Bitmap1`, surface + 4)

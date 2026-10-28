@@ -9,8 +9,8 @@
  *
  * Detection, on the UI task: YIN (de Cheveigne & Kawahara 2002) at 12 kHz, stopping at the
  * first clear dip, then the exact period from the plain difference function at 24 kHz
- * around it. The working buffers come from Roland's heap while capturing: PITCH_RAM is
- * non-cacheable, and the inner loops there were the tuner's main cost.
+ * around it. The working buffers come from Roland's heap while capturing: PITCH_RAM was
+ * non-cacheable until 2026-10-28, and the inner loops there were the tuner's main cost.
  */
 #include <stdint.h>
 

@@ -165,7 +165,6 @@ export function applyPatches(original, data, ids) {
 // payload use by the rules export_web.py derived from v5.52 (app1/tools/anchors.py), then build
 // the same kind of change lists as patches.json has for v5.52. A patch is offered only if all
 // its addresses are found and all its original bytes are as expected.
-// Not used by the page yet: other versions also need the RAM checks in web-patcher.md.
 
 const u16 = (b, o) => b[o] | b[o + 1] << 8;
 const u32 = (b, o) => (b[o] | b[o + 1] << 8 | b[o + 2] << 16 | b[o + 3] << 24) >>> 0;
@@ -363,6 +362,77 @@ function payloadSetup(img, table, data, size) {
   ];
 }
 
+// The payload and its state live in [payload_ram, 0x83FF0000) (payload.ld, ram.h); MPU region 9
+// starts at the top. Roland's looper/skip-back buffer (0x740000 bytes, start and end built by
+// movw/movt) starts right after Roland's static data, so it moves up when that grows
+// (web-patcher.md). If its end passes payload_ram, every site that builds the end gets
+// payload_ram instead: Roland computes everything from end - start, so the buffer just shrinks.
+// Returns the changes for that (none so far in any release); throws if the range isn't free.
+const REGION9 = 0x83FF0000, SKIPBACK_SIZE = 0x740000;
+
+function skipbackChanges(img, table, payloadRam) {
+  // Every movw/movt pair in Roland's code, decoded in instruction order (anchors.py _scan)
+  const pairs = new Map();               // value -> [{w, t}] (file offsets of movw, movt)
+  const literals = [];                   // [{value, at}] words loaded by 'ldr rd, [pc, #n]'
+  for (const g of table.regions) {
+    const movw = {};
+    // A raw word scan would read instruction bytes (e8bd...) as addresses: take only the words
+    // pc-relative loads read
+    const literal = (o, imm) => {
+      const at = ((o - g.fo + g.rt + 4) & ~3) + imm, lo = at - g.rt + g.fo;
+      if (lo >= g.fo && lo + 4 <= g.fo + g.size) literals.push({ value: u32(img, lo), at });
+    };
+    for (let o = g.fo; o + 4 <= g.fo + g.size;) {
+      const h1 = u16(img, o), h2 = u16(img, o + 2);
+      if (!(h1 >> 11 === 0x1D || h1 >> 11 === 0x1E || h1 >> 11 === 0x1F)) {
+        if ((h1 & 0xF800) === 0x4800) literal(o, (h1 & 0xFF) * 4);
+        o += 2;
+        continue;
+      }
+      const rd = h2 >> 8 & 0xF;
+      if ((h1 & 0xFF7F) === 0xF85F) {
+        literal(o, (h2 & 0xFFF) * (h1 & 0x80 ? 1 : -1));
+      } else if ((h1 & 0xFBF0) === 0xF240 && !(h2 & 0x8000)) {
+        movw[rd] = { lo: movwImm(h1, h2), w: o };
+      } else if ((h1 & 0xFBF0) === 0xF2C0 && !(h2 & 0x8000) && movw[rd] && o - movw[rd].w <= 32) {
+        const v = (movwImm(h1, h2) * 0x10000 + movw[rd].lo) >>> 0;
+        if (!pairs.has(v)) pairs.set(v, []);
+        pairs.get(v).push({ w: movw[rd].w, t: o });
+        delete movw[rd];
+      }
+      o += 4;
+    }
+  }
+
+  // The buffer ends within 1 MB under region 9 in every release (an older one has another pair
+  // of addresses 0x740000 apart, far lower)
+  const starts = [...pairs.keys()].filter(s => s + SKIPBACK_SIZE > REGION9 - 0x100000 && s + SKIPBACK_SIZE <= REGION9 &&
+                                               pairs.has(s + SKIPBACK_SIZE));
+  if (starts.length !== 1) throw new Error(`the skip-back buffer was not found (${starts.length} candidates)`);
+  const end = starts[0] + SKIPBACK_SIZE, newEnd = Math.min(end, payloadRam);
+
+  // Nothing but the buffer's end may point into [newEnd, REGION9)
+  for (const [v, sites] of pairs) {
+    if (v >= newEnd && v < REGION9 && v !== end) {
+      throw new Error(`Roland's code builds ${addrHex(v)} (at ${addrHex(toRuntime(table.regions, sites[0].w))}), where the payload goes`);
+    }
+  }
+  const lit = literals.find(l => l.value >= newEnd && l.value < REGION9);
+  if (lit) throw new Error(`Roland's code loads ${addrHex(lit.value)} (word at ${addrHex(lit.at)}), where the payload goes`);
+  const clash = table.entries.find(e => e.dst < REGION9 && e.dst + e.size > newEnd);
+  if (clash) throw new Error(`the start-up copies data to ${addrHex(clash.dst)}, where the payload goes`);
+
+  if (end <= payloadRam) return [];
+  return pairs.get(end).map(({ w, t }) => {
+    const old = [...img.subarray(w, w + 4), ...img.subarray(t, t + 4)];
+    const rdW = img[w + 3] & 0xF, rdT = img[t + 3] & 0xF;
+    return [
+      { offset: w, old: hex(old.slice(0, 4)), new: hex(movwMovt(false, rdW, newEnd & 0xFFFF)), why: 'start-up: shrink the skip-back buffer' },
+      { offset: t, old: hex(old.slice(4)), new: hex(movwMovt(true, rdT, newEnd >>> 16)), why: 'start-up: shrink the skip-back buffer' },
+    ];
+  }).flat();
+}
+
 // For a firmware not listed by hash: {plan (use like patches.json with applyPatches), patches:
 // [{id, name, ok, problems}], anchors: {found, missing}}
 export function resolve(original, data) {
@@ -385,9 +455,17 @@ export function resolve(original, data) {
   padded.set(original, 0);
   padded.set(payloadBytes, data.payload.offset);
 
+  let shrink = [], ramProblem = null;
+  try {
+    shrink = skipbackChanges(original, table, r.payload_ram);
+  } catch (e) {
+    ramProblem = `payload RAM: ${e.message}`;
+  }
+
   const report = [], patches = [];
   for (const p of data.patches) {
     const problems = p.imports.filter(n => !(n in found)).map(n => `${n}: ${missing[n] || 'not found'}`);
+    if (p.payload && ramProblem) problems.push(ramProblem);
     const changes = [];
     for (const t of p.relocatable) {
       try {
@@ -411,8 +489,8 @@ export function resolve(original, data) {
   const plan = {
     firmware: [],
     payload: { offset: data.payload.offset, imports: imp, bytes: payloadBytes },
-    payload_setup: payloadSetup(original, table, data, payloadBytes.length),
+    payload_setup: [...payloadSetup(original, table, data, payloadBytes.length), ...shrink],
     patches,
   };
-  return { plan, patches: report, anchors };
+  return { plan, patches: report, anchors, shrink: shrink.length / 2 };
 }

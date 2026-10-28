@@ -1,9 +1,10 @@
 // The page: file input, patch list, build and download. The work is in patcher.js.
-import { readFirmware, identify, selectionProblem, applyPatches } from './patcher.js';
+import { readFirmware, identify, resolve, selectionProblem, applyPatches } from './patcher.js';
 
 const $ = id => document.getElementById(id);
 let data = null;        // patches.json
-let firmware = null;    // {bytes, name, version} once a supported file is chosen
+let firmware = null;    // {bytes, name, version, plan} once a usable file is chosen: a known
+                        // version with patches.json, or version null with what resolve() found
 
 function setStatus(el, text, kind) {
   el.textContent = text;
@@ -12,6 +13,16 @@ function setStatus(el, text, kind) {
 
 function selected() {
   return [...document.querySelectorAll('#patches input:checked')].map(i => i.value);
+}
+
+// Only the patches this firmware can take can be chosen (null: all)
+function offer(ids) {
+  for (const input of document.querySelectorAll('#patches input')) {
+    const ok = !ids || ids.includes(input.value);
+    input.disabled = !ok;
+    if (!ok) input.checked = false;
+    input.closest('.patch').classList.toggle('disabled', !ok);
+  }
 }
 
 function update() {
@@ -52,19 +63,40 @@ function renderPatches() {
 
 async function chooseFile(file) {
   firmware = null;
+  offer(null);
   update();
   setStatus($('fileStatus'), `Reading ${file.name}…`);
+  const tested = data.firmware.map(f => f.version).join(' or ');
   try {
     const fw = await readFirmware(new Uint8Array(await file.arrayBuffer()), file.name);
     const known = await identify(fw.bytes, data);
-    if (!known) {
-      setStatus($('fileStatus'), `${fw.name} isn’t Roland’s version ` +
-        data.firmware.map(f => f.version).join(' or ') + ' (or it was changed). For now the ' +
-        'patcher works with that version only.', 'bad');
+    if (known) {
+      firmware = { ...fw, version: known.version, plan: data };
+      setStatus($('fileStatus'), `✓ ${fw.name}: Roland’s version ${known.version}`, 'good');
+      update();
       return;
     }
-    firmware = { ...fw, version: known.version };
-    setStatus($('fileStatus'), `✓ ${fw.name}: Roland’s version ${known.version}`, 'good');
+    // Another version (or a changed file): look for every place the patches need
+    let found = null;
+    try {
+      found = resolve(fw.bytes, data);
+    } catch (e) {
+      console.log('resolve:', e);
+    }
+    const ok = found ? found.patches.filter(p => p.ok).map(p => p.id) : [];
+    if (!ok.length) {
+      setStatus($('fileStatus'), `${fw.name} isn’t Roland’s version ${tested}, and the patches ` +
+        'can’t find their places in it. Is it Roland’s unchanged SP404MKII_APP1.bin?', 'bad');
+      return;
+    }
+    console.log('patches not found in this firmware:', found.patches.filter(p => !p.ok));
+    firmware = { ...fw, version: null, plan: found.plan };
+    offer(ok);
+    const missing = data.patches.length - ok.length;
+    setStatus($('fileStatus'), `⚠ ${fw.name} is not version ${tested}, the one these patches are ` +
+      `tested on. The page found the places for ${ok.length} of ${data.patches.length} patches` +
+      (missing ? ' (the others are greyed out)' : '') + ', but nobody has tried the result on ' +
+      `an SP-404MKII yet. If you can, update to ${tested} first.`);
   } catch (e) {
     setStatus($('fileStatus'), e.message, 'bad');
   }
@@ -74,7 +106,7 @@ async function chooseFile(file) {
 function build() {
   const ids = selected();
   try {
-    const out = applyPatches(firmware.bytes, data, ids);
+    const out = applyPatches(firmware.bytes, firmware.plan, ids);
     const url = URL.createObjectURL(new Blob([out], { type: 'application/octet-stream' }));
     const a = document.createElement('a');
     a.href = url;
@@ -84,7 +116,8 @@ function build() {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
     const names = ids.map(id => data.patches.find(p => p.id === id).name);
-    setStatus($('buildStatus'), `✓ Built SP404MKII_APP1.bin for version ${firmware.version} with: ` +
+    const which = firmware.version ? `version ${firmware.version}` : 'your (untested) version';
+    setStatus($('buildStatus'), `✓ Built SP404MKII_APP1.bin for ${which} with: ` +
       names.join(', ') + '. Install it as described below.', 'good');
   } catch (e) {
     setStatus($('buildStatus'), e.message, 'bad');
