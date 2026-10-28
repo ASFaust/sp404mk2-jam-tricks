@@ -123,7 +123,10 @@ How the page is built (details for the to-do above):
 - `patches.json` comes from `python3 app1/tools/export_web.py web`.
   Its `PUBLIC` dict is the list of patches the site offers, with the text users see: today
   `no-efx-timeout`, `scale-pads`, `scale-pads-wide`, `chrom-voices`, `vari4-stretch`, `tuner`
-  (works on the device, user, 2026-10-27); `cpu-meter` is diagnostic.
+  (works on the device, user, 2026-10-27); `cpu-meter` is diagnostic. Each card shows
+  `name` and `summary`, and its info popup shows `text` and the warnings. `option_of` makes a
+  patch a switch inside another's card (`scale-pads-wide` in "Dense chromatic layout"). The site's
+  names differ from `make_image.py`'s titles (user, 2026-10-28).
   The export replays the JSON for all allowed combinations (47) and compares each with
   `make_image.build()`. Export alongside source changes; the footer records the build revision.
 - For now the page recognises the firmware by SHA-256 (v5.52 only) and applies exact changes.

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jam Tricks</title>
+  <title>SP-404MKII Jam Tricks v1.0</title>
   <script>
     (function() {
       var saved = localStorage.getItem('theme');
@@ -20,7 +20,7 @@
 <body>
   <nav class="site-nav">
     <a href="https://asfaust.github.io/">&larr; Home</a>
-    <h1>Jam Tricks</h1>
+    <h1><span class="model">SP-404MKII</span> Jam Tricks <span class="version" id="titleVersion">v1.0</span></h1>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">☀</button>
   </nav>
 
@@ -30,54 +30,74 @@
         the way there: in chromatic mode half the pads go dark once you pick a scale, the effect
         screen closes in the middle of a song, and I wanted to tune the guitar right on the
         sampler. So I changed its firmware.</p>
-      <p>These are those changes, free for anyone: scale pads, chromatic voice modes, a guitar
-        tuner and a better time stretch. This page makes them to the firmware file you give it.</p>
-      <p>Everything happens in your browser. The file is not uploaded anywhere.</p>
+      <p>These are those changes, free for anyone: a dense chromatic layout, voice limits, a
+        guitar tuner and a better time stretch. This page makes them to the firmware file you give it.
+        Everything happens in your browser. The file is not uploaded anywhere.</p>
     </div>
 
-    <h2><span class="step">1</span>Roland’s firmware</h2>
-    <p>Download the SP-404MKII system program from Roland’s website (a zip file such as
-      <code>sp404mk2_sys_v552.zip</code>) and choose it here. The bare
-      <code>SP404MKII_APP1.bin</code> from inside it works too.</p>
-    <label class="drop" id="drop">
-      <input type="file" id="file" accept=".zip,.bin">
-      <strong>Choose the zip file</strong> or drop it here
-    </label>
-    <div class="status" id="fileStatus" role="status"></div>
+    <section class="step-firmware">
+      <h2><span class="step">1</span>Roland’s firmware</h2>
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept=".zip,.bin">
+        <span class="drop-main"><strong>Choose the zip file</strong> or drop it here</span>
+        <span class="drop-hint">The SP-404MKII system program from
+          <a href="https://www.roland.com/global/support/by_product/sp-404mk2/updates_drivers"
+          target="_blank" rel="noopener">Roland’s download page</a>, such as
+          <code>sp404mk2_sys_v552.zip</code>. The bare <code>SP404MKII_APP1.bin</code> from
+          inside it works too.</span>
+      </label>
+      <div class="status" id="fileStatus" role="status"></div>
+    </section>
 
-    <h2><span class="step">2</span>Patches</h2>
-    <ul class="patches" id="patches"></ul>
+    <section>
+      <h2><span class="step">2</span>Patches</h2>
+      <ul class="patches" id="patches"></ul>
+      <dialog class="info-popup" id="infoPopup"><div class="popup-inner">
+        <div class="popup-head"><h3 id="infoTitle"></h3>
+          <button class="popup-close" id="infoClose" aria-label="Close">✕</button></div>
+        <div id="infoBody"></div>
+      </div></dialog>
+    </section>
 
-    <h2><span class="step">3</span>Build</h2>
-    <p><button class="build" id="build" disabled>Build SP404MKII_APP1.bin</button></p>
-    <div class="status" id="buildStatus" role="status"></div>
+    <section class="buildbar">
+      <h2><span class="step">3</span>Build</h2>
+      <div class="build-row">
+        <button class="build" id="build" disabled>Build SP404MKII_APP1.bin</button>
+        <div class="status" id="buildStatus" role="status"></div>
+      </div>
+    </section>
 
-    <h2>Installing</h2>
-    <ol>
-      <li>Format an SD card as FAT32 (a fresh format avoids trouble).</li>
-      <li>Copy the built <code>SP404MKII_APP1.bin</code> to the top level of the card, with exactly
-        that name.</li>
-      <li>With the SP-404MKII off, insert the card, hold <strong>SHIFT</strong> and switch it on.</li>
-      <li>Press the <strong>VALUE</strong> knob to start the update.</li>
-      <li>Wait until the screen shows <strong>UPDATE COMPLETE!</strong>, then switch off and on
-        again. Don’t switch off before that message.</li>
-    </ol>
-    <p>To go back to Roland’s firmware, install Roland’s own <code>SP404MKII_APP1.bin</code> from
-      the zip the same way. Keep the zip for that.</p>
-
-    <h2>Good to know</h2>
-    <ul>
-      <li>Only the main program (<code>SP404MKII_APP1.bin</code>) changes. The sound chip’s
-        firmware (<code>SP404MKII_APP0.bin</code>) is never touched.</li>
-      <li>The page checks every byte it changes against what it expects to find, and builds
-        nothing if the firmware differs. The patches are tested on Roland’s version 5.52.
-        For another version the page looks for the places each patch needs and offers the
-        patches it finds, marked as untested.</li>
-      <li>Some patches store settings in your projects that an SP-404MKII without the patch
-        reads differently. Those patches say so above.</li>
-      <li>This is an independent project, not made or supported by Roland. Use it at your own
-        risk.</li>
-    </ul>
+    <div class="info">
+      <section>
+        <h2>Installing</h2>
+        <ol>
+          <li>Format an SD card as FAT32 (a fresh format avoids trouble).</li>
+          <li>Copy the built <code>SP404MKII_APP1.bin</code> to the top level of the card, with
+            exactly that name.</li>
+          <li>With the SP-404MKII off, insert the card, hold <strong>SHIFT</strong> and switch it
+            on.</li>
+          <li>Press the <strong>VALUE</strong> knob to start the update.</li>
+          <li>Wait until the screen shows <strong>UPDATE COMPLETE!</strong>, then switch off and on
+            again. Don’t switch off before that message.</li>
+        </ol>
+        <p>To go back to Roland’s firmware, install Roland’s own <code>SP404MKII_APP1.bin</code>
+          from the zip the same way. Keep the zip for that.</p>
+      </section>
+      <section>
+        <h2>Good to know</h2>
+        <ul>
+          <li>This is an independent project, not made or supported by Roland. Use it at your
+            own risk.</li>
+          <li>You can go back. The patches leave the part of the SP-404MKII that installs
+            updates alone, so even if it doesn’t start after patching, you should be able to
+            install Roland’s firmware the same way. No guarantees, but it’s very likely.</li>
+          <li>Tested on Roland’s version 5.52. Other versions may work too: patches that don’t
+            fit your version are greyed out.</li>
+          <li>Some patches store settings in your projects that an SP-404MKII without the patch
+            reads differently. Those patches say so above.</li>
+        </ul>
+      </section>
+    </div>
 
     <footer class="small" id="footer"></footer>
   </main>

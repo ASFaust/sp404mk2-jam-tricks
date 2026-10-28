@@ -27,43 +27,55 @@ import anchors
 import make_image as mi
 import package_web
 
-# The patches the website offers, with the text users see. Diagnostic patches (cpu-meter,
-# tuner-probes) stay out of the website selection.
+# The patches the website offers, with the text users see: "summary" on the card, "text" in
+# its info popup. Diagnostic patches (cpu-meter, tuner-probes) stay out of the website selection.
 PUBLIC = {
     "no-efx-timeout": {
         "name": "Effect screen stays open",
+        "summary": "The effect screen stays until you press EXIT.",
         "text": "The effect edit screen no longer jumps back to the main screen after a few "
                 "seconds. It stays until you press EXIT.",
     },
     "scale-pads": {
-        "name": "Scale pads",
+        "name": "Dense chromatic layout",
+        "summary": "With a scale chosen, all 16 pads play notes of the scale.",
         "text": "In chromatic mode with a scale chosen, all 16 pads play notes of the scale, "
                 "from the bottom left upwards: about two octaves, starting an octave below the "
                 "root. Stock firmware darkens the pads outside the scale instead. The VALUE knob "
                 "moves the grid by a row (with SHIFT, by one step). The playable range is "
-                "+/-24 semitones.",
+                "±24 semitones.",
     },
-    "scale-pads-wide": {
-        "name": "Scale pads + wide PITCH",
-        "text": "Scale pads, and every pad's PITCH reaches +/-24 semitones instead of +/-12.",
+    "scale-pads-wide": {           # shown as a switch inside the Dense chromatic layout card
+        "name": "Widen pitch",
+        "option_of": "scale-pads",
+        "summary": "Every pad's PITCH reaches ±24 semitones instead of ±12.",
+        "text": "Every pad's PITCH reaches ±24 semitones instead of ±12, not only in chromatic "
+                "mode.",
     },
     "chrom-voices": {
-        "name": "Chromatic voices",
+        "name": "Control number of chromatic voices",
+        "summary": "LEGATO, MONO or 2 to 8 voices in chromatic mode.",
         "text": "In chromatic mode, hold REMAIN and turn VALUE to choose LEGATO, MONO, POLY 2 to "
                 "POLY 8 voices, or unlimited POLY. With a voice count, the oldest note stops when "
                 "you play one more. The pitch/speed panel's PITCH and FINE now tune the "
-                "chromatic notes.",
+                "chromatic notes. A good companion to VARI Plus: if pads stop responding in "
+                "chromatic mode, too many voices are asking for more CPU than there is, and a "
+                "voice limit fixes that.",
     },
     "vari4-stretch": {
         "name": "VARI Plus time stretch",
-        "text": "A fourth VARI option, Plus, next to Off, Backing and Ensemble (hold SHIFT on "
-                "the pitch/speed panel). It stretches and pitch-shifts with fewer smeared "
-                "attacks and less phasiness. It costs more CPU than the stock modes, so many "
-                "voices at once can be too much. Changing VARI while a pad plays no longer "
-                "restarts it.",
+        "summary": "A fourth time-stretch mode with cleaner attacks.",
+        "text": "VARI is the SP-404MKII's per-pad choice of time stretch: how a pad keeps its "
+                "tempo when you change its pitch, or its pitch when you change its tempo. Hold "
+                "SHIFT on the pitch/speed panel to pick Off, Backing or Ensemble. This adds a "
+                "fourth option, Plus, with fewer smeared attacks and less phasiness. It costs "
+                "more CPU than the stock modes, so many voices at once can be too much; limit "
+                "them with Control number of chromatic voices. Changing VARI while a pad plays "
+                "no longer restarts it.",
     },
     "tuner": {
         "name": "Guitar tuner",
+        "summary": "BANK A + BANK B opens a tuner on the sampler.",
         "text": "Press BANK A and BANK B together on the main screen to open a tuner: it shows "
                 "the nearest note and how many cents sharp or flat you are. It listens to the "
                 "SP's output, input effects included, so keep other sounds quiet while tuning; "

@@ -11,47 +11,115 @@ function setStatus(el, text, kind) {
   el.className = 'status' + (kind ? ' ' + kind : '');
 }
 
+// A card's patch, or its option (option_of in patches.json) instead when that is switched on
 function selected() {
-  return [...document.querySelectorAll('#patches input:checked')].map(i => i.value);
+  const ids = [];
+  for (const card of document.querySelectorAll('#patches .card')) {
+    const main = card.querySelector('.patch input');
+    const option = card.querySelector('.option input');
+    if (main.checked) ids.push(option && option.checked && !option.disabled ? option.value : main.value);
+  }
+  return ids;
 }
 
 // Only the patches this firmware can take can be chosen (null: all)
 function offer(ids) {
   for (const input of document.querySelectorAll('#patches input')) {
     const ok = !ids || ids.includes(input.value);
-    input.disabled = !ok;
+    input.dataset.offered = ok ? '1' : '';
     if (!ok) input.checked = false;
-    input.closest('.patch').classList.toggle('disabled', !ok);
+  }
+  refreshCards();
+}
+
+function refreshCards() {
+  for (const card of document.querySelectorAll('#patches .card')) {
+    const main = card.querySelector('.patch input');
+    main.disabled = !main.dataset.offered;
+    card.classList.toggle('disabled', main.disabled);
+    card.classList.toggle('on', main.checked);
+    const option = card.querySelector('.option input');
+    if (option) {
+      option.disabled = !main.checked || !option.dataset.offered;
+      option.closest('.option').classList.toggle('disabled', option.disabled);
+    }
   }
 }
 
 function update() {
+  refreshCards();
   const ids = selected();
   const problem = data && selectionProblem(data, ids);
   $('build').disabled = !data || !firmware || !!problem;
   setStatus($('buildStatus'), firmware && ids.length && problem ? problem : '');
 }
 
+function describe(el, p) {
+  el.querySelector('.name').textContent = p.name;
+  el.querySelector('.text').textContent = p.summary;
+}
+
+// The full text of a patch and its options, with their warnings
+function showInfo(p) {
+  $('infoTitle').textContent = p.name;
+  const body = $('infoBody');
+  body.replaceChildren();
+  const add = (cls, text) => {
+    const el = document.createElement('p');
+    el.className = cls;
+    el.textContent = text;
+    body.append(el);
+  };
+  add('', p.text);
+  if (p.warning) add('warning', p.warning);
+  for (const o of data.patches.filter(o => o.option_of === p.id)) {
+    add('option-head', o.name);
+    add('', o.text);
+    if (o.warning) add('warning', o.warning);
+  }
+  $('infoPopup').showModal();
+}
+
 function renderPatches() {
   const list = $('patches');
-  for (const p of data.patches) {
+  for (const p of data.patches.filter(p => !p.option_of)) {
     const li = document.createElement('li');
-    li.innerHTML = `<label class="patch"><input type="checkbox"><div>
-      <div class="name"></div><div class="text"></div></div></label>`;
+    li.className = 'card';
+    li.innerHTML = `<label class="patch"><input type="checkbox" class="sr"><span class="tick"></span>
+      <div><div class="name"></div><div class="text"></div></div></label>`;
     const input = li.querySelector('input');
     input.value = p.id;
     input.dataset.group = p.group || '';
-    li.querySelector('.name').textContent = p.name;
-    li.querySelector('.text').textContent = p.text;
-    if (p.warning) {
-      const w = document.createElement('div');
-      w.className = 'warning';
-      w.textContent = p.warning;
-      li.querySelector('.text').after(w);
+    describe(li.querySelector('.patch'), p);
+    const info = document.createElement('button');
+    info.className = 'info-btn';
+    info.type = 'button';
+    info.textContent = 'i';
+    info.setAttribute('aria-label', `More about ${p.name}`);
+    info.addEventListener('click', () => showInfo(p));
+    li.append(info);
+    const options = data.patches.filter(o => o.option_of === p.id);
+    if ([p, ...options].some(q => q.warning)) {
+      const note = document.createElement('button');
+      note.className = 'note';
+      note.type = 'button';
+      note.textContent = 'Affects saved projects';
+      note.addEventListener('click', () => showInfo(p));
+      li.querySelector('.patch .text').after(note);
+    }
+    for (const o of options) {
+      const label = document.createElement('label');
+      label.className = 'option';
+      label.innerHTML = `<input type="checkbox" class="sr"><span class="switch"></span>
+        <div><span class="name"></span> <span class="text"></span></div>`;
+      label.querySelector('input').value = o.id;
+      describe(label, o);
+      label.querySelector('input').addEventListener('change', update);
+      li.append(label);
     }
     input.addEventListener('change', () => {
       if (input.checked && p.group) {   // one per group: the others in it switch off
-        for (const other of list.querySelectorAll('input')) {
+        for (const other of list.querySelectorAll('.patch input')) {
           if (other !== input && other.dataset.group === p.group) other.checked = false;
         }
       }
@@ -59,6 +127,7 @@ function renderPatches() {
     });
     list.append(li);
   }
+  offer(null);
 }
 
 async function chooseFile(file) {
@@ -98,9 +167,11 @@ async function chooseFile(file) {
     console.log('patches not found in this firmware:', found.patches.filter(p => !p.ok));
     firmware = { ...fw, version: null, plan: found.plan };
     offer(ok);
-    const missing = data.patches.length - ok.length;
+    const cards = data.patches.filter(p => !p.option_of);
+    const foundCards = cards.filter(p => ok.includes(p.id)).length;
+    const missing = cards.length - foundCards;
     setStatus($('fileStatus'), `⚠ ${fw.name} is not version ${tested}, the one these patches are ` +
-      `tested on. The page found the places for ${ok.length} of ${data.patches.length} patches` +
+      `tested on. The page found the places for ${foundCards} of ${cards.length} patches` +
       (missing ? ' (the others are greyed out)' : '') + ', but nobody has tried the result on ' +
       `an SP-404MKII yet. If you can, update to ${tested} first.`);
   } catch (e) {
@@ -121,7 +192,11 @@ function build() {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
-    const names = ids.map(id => data.patches.find(p => p.id === id).name);
+    const names = ids.map(id => {
+      const p = data.patches.find(q => q.id === id);
+      const main = p.option_of && data.patches.find(q => q.id === p.option_of);
+      return main ? `${main.name} (${p.name.toLowerCase()})` : p.name;
+    });
     const which = firmware.version ? `version ${firmware.version}` : 'your (untested) version';
     setStatus($('buildStatus'), `✓ Built SP404MKII_APP1.bin for ${which} with: ` +
       names.join(', ') + '. Install it as described below.', 'good');
@@ -139,6 +214,8 @@ async function main() {
     return;
   }
   renderPatches();
+  $('titleVersion').textContent = `v${data.version}`;   // the HTML's own is a fallback
+  document.title = `SP-404MKII Jam Tricks v${data.version}`;
   $('footer').textContent = `Jam Tricks v${data.version}, built ${data.built} (${data.source}) for firmware ` +
     data.firmware.map(f => f.version).join(', ') + '.';
 
@@ -152,6 +229,10 @@ async function main() {
     if (e.dataTransfer.files[0]) chooseFile(e.dataTransfer.files[0]);
   });
   $('build').addEventListener('click', build);
+  $('infoClose').addEventListener('click', () => $('infoPopup').close());
+  $('infoPopup').addEventListener('click', e => {   // a click on the backdrop closes it
+    if (e.target === $('infoPopup')) $('infoPopup').close();
+  });
   update();
 }
 
