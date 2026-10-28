@@ -319,6 +319,8 @@ button.build:disabled { opacity: 0.35; cursor: default; }
 .info section { min-width: 0; }
 
 .small { font-size: 13px; color: var(--color-text-secondary); }
+footer a { color: var(--color-text-secondary); margin-right: 0.6rem; }
+footer a:hover { color: var(--color-text-primary); }
 footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--color-border-secondary); }
 
 </style>
@@ -637,7 +639,8 @@ main();
         <h2>Good to know</h2>
         <ul>
           <li>This is an independent project, not made or supported by Roland. Use it at your
-            own risk.</li>
+            own risk. The source code is on <a href="https://github.com/ASFaust/sp404mk2-jam-tricks" target="_blank"
+            rel="noopener">GitHub</a>.</li>
           <li>You can go back. The patches leave the part of the SP-404MKII that installs
             updates alone, so even if it doesn’t start after patching, you should be able to
             install Roland’s firmware the same way. No guarantees, but it’s very likely.</li>
@@ -649,7 +652,8 @@ main();
       </section>
     </div>
 
-    <footer class="small" id="footer"></footer>
+    <footer class="small"><a href="https://github.com/ASFaust/sp404mk2-jam-tricks" target="_blank" rel="noopener">Source code on GitHub</a>
+      <span id="footer"></span></footer>
   </main>
 
   <script>
