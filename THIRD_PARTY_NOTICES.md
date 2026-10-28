@@ -7,7 +7,8 @@ provided APP1 symbol names and the function-coverage repair approach.
 The upstream MIT notice is included in [LICENSES/Tallfree-MIT.txt](LICENSES/Tallfree-MIT.txt).
 
 Roland's firmware remains Roland's copyrighted work and is not included.
-No project-wide licence has been selected for the original Jam Tricks work.
+The original Jam Tricks work is under the MIT License in [LICENSE](LICENSE); the parts
+named here keep their own licences.
 
 Adobe Source Serif 4, Source Sans 3 and Source Code Pro fonts are bundled in `web/fonts/`
 under the [SIL Open Font License](web/fonts/OFL.txt).

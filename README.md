@@ -40,4 +40,4 @@ Patching can cause crashes or data loss. Back up projects, keep the original APP
 recovery, and read [the installation and recovery notes](docs/app1/patching.md).
 This is an independent project, unaffiliated with Roland.
 
-[Third-party acknowledgements](THIRD_PARTY_NOTICES.md).
+Jam Tricks is under the [MIT License](LICENSE). [Third-party acknowledgements](THIRD_PARTY_NOTICES.md).
