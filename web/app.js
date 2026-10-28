@@ -1,5 +1,5 @@
 // The page: file input, patch list, build and download. The work is in patcher.js.
-import { readFirmware, identify, resolve, selectionProblem, applyPatches } from './patcher.js';
+import { readFirmware, alreadyPatched, identify, resolve, selectionProblem, applyPatches } from './patcher.js';
 
 const $ = id => document.getElementById(id);
 let data = null;        // patches.json
@@ -69,6 +69,12 @@ async function chooseFile(file) {
   const tested = data.firmware.map(f => f.version).join(' or ');
   try {
     const fw = await readFirmware(new Uint8Array(await file.arrayBuffer()), file.name);
+    const patched = alreadyPatched(fw.bytes, data);
+    if (patched) {
+      setStatus($('fileStatus'), `${fw.name} was already patched with ${patched}. Choose Roland’s ` +
+        'original zip instead: the page always starts from Roland’s unchanged firmware.', 'bad');
+      return;
+    }
     const known = await identify(fw.bytes, data);
     if (known) {
       firmware = { ...fw, version: known.version, plan: data };
@@ -133,7 +139,7 @@ async function main() {
     return;
   }
   renderPatches();
-  $('footer').textContent = `Patches built ${data.built} (${data.source}) for firmware ` +
+  $('footer').textContent = `Jam Tricks v${data.version}, built ${data.built} (${data.source}) for firmware ` +
     data.firmware.map(f => f.version).join(', ') + '.';
 
   $('file').addEventListener('change', e => e.target.files[0] && chooseFile(e.target.files[0]));

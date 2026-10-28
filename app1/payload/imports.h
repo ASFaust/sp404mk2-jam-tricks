@@ -88,7 +88,12 @@
     X(g_sys_time_ms,                0x202BCF20) \
     /* CPU meter (meter.c) */ \
     X(PanelTask_OnEvent,            0x80072CF1) \
-    X(g_icon_draw_ctx,              0x80591B48)
+    X(g_icon_draw_ctx,              0x80591B48) \
+    /* the Jam Tricks version next to Roland's on two info screens (hooks.S) */ \
+    X(g_app1_version,               0x802E7620) /* char *: "5.52" */ \
+    X(g_app1_build,                 0x802E6050) /* char *: the build hash */ \
+    X(VersionText_cont,             0x8014B14D) \
+    X(App1Line_cont,                0x800F7437)
 
 #define IMPORTS_MAGIC 0x31504D49        /* "IMP1": then the entry count, then the entries */
 

@@ -126,7 +126,7 @@ def apply(original, data, ids):
             raise ValueError(f"[{who}] {off:#x}: expected {old.hex()}, found {found.hex()}")
         img[off:off + len(new)] = new
         applied[off] = new
-    return bytes(img)
+    return bytes(img) + data["marker"].encode()
 
 
 def combinations(data):
@@ -171,7 +171,7 @@ def main(argv):
         if p.id not in PUBLIC:
             continue
         used = Recorder(syms)
-        changes = p.changes(used) if callable(p.changes) else p.changes
+        changes = mi.patch_changes(p, used)
         templates = [dict(anchors.template(a, old, new), why=why) for a, old, new, why in changes]
         imports = anchors.imports_reached(graph, sym_names, used.read) if p.payload else []
         for a, old, _, _ in changes:
@@ -190,6 +190,8 @@ def main(argv):
                            capture_output=True, text=True).stdout.strip()
     data = {
         "format": 1,
+        "version": mi.JAM_TRICKS_VERSION,
+        "marker": mi.MARKER.decode(),       # appended to every image; refused as input
         "built": datetime.date.today().isoformat(),
         "source": (commit or "uncommitted") + ("+changes" if dirty else ""),
         "firmware": [{"version": "5.52", "file": "SP404MKII_APP1.bin", "size": len(original),

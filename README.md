@@ -1,6 +1,6 @@
 # SP-404MKII Jam Tricks
 
-Musical firmware patches for playing the Roland SP-404MKII at jam sessions, plus
+Musical firmware patches (Jam Tricks v1.0) for playing the Roland SP-404MKII at jam sessions, plus
 notes and tools for understanding its APP1 main application.
 
 - **Scale pads:** all 16 chromatic pads play notes in the selected scale; optional ±24 pitch range.

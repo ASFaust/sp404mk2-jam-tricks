@@ -1,7 +1,7 @@
 // Run via python3 tests/verify_web.py; firmware and expectations stay local.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {applyPatches, identify, selectionProblem, readFirmware, resolve, sha256} from '../web/patcher.js';
+import {alreadyPatched, applyPatches, identify, selectionProblem, readFirmware, resolve, sha256} from '../web/patcher.js';
 const data = JSON.parse(fs.readFileSync(new URL('../web/patches.json', import.meta.url)));
 const original = new Uint8Array(fs.readFileSync(process.env.SP404_APP1));
 const expected = JSON.parse(fs.readFileSync(0, 'utf8'));
@@ -20,6 +20,13 @@ assert.deepEqual(resolved.patches.filter(p => !p.ok), []);
 for (const {ids, hash} of expected) {
   assert.equal(await sha256(applyPatches(original, resolved.plan, ids)), hash, 'resolved: ' + ids.join(','));
 }
+// Its own output is refused as input, with and without a payload
+assert.equal(alreadyPatched(original, data), null);
+for (const ids of [['no-efx-timeout'], ['scale-pads']]) {
+  assert.equal(alreadyPatched(applyPatches(original, data, ids), data), `Jam Tricks v${data.version}`);
+}
+const unmarked = applyPatches(original, data, ['scale-pads']);
+assert.equal(alreadyPatched(unmarked.subarray(0, unmarked.length - data.marker.length), data), 'an earlier Jam Tricks');
 assert.ok(selectionProblem(data, ['scale-pads', 'scale-pads-wide']));
 assert.ok(selectionProblem(data, ['unknown']));
 assert.ok(selectionProblem(data, []));

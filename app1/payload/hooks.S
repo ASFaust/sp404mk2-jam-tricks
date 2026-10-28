@@ -107,3 +107,54 @@ audio_rx_orig:
         ldr.w   pc, [r12]
 
         .ltorg
+
+/* The Jam Tricks version after Roland's wherever the firmware shows it, as in
+   "Version: 5.52+jam-tricks-v1.0". Roland's own string stays as it is: the first four
+   characters also go out over MIDI and USB (SysEx reply, FUN_80115db8 and FUN_800f6f80).
+   Both formats were loaded with 'adr', which can't reach us, so each site jumps here instead
+   and continues after the replaced instructions with the same registers. JAM_TRICKS_VERSION
+   comes from make_image.py. */
+
+/* FUN_8014b120 draws "Version: %s": replaces 'movw r0; mov r5, sp; movt r0; adr r1, fmt;
+   ldr r2, [r0]' at 0x8014B13E and continues at 0x8014B14C (mov r0, r5; bl sprintf). */
+        .global hook_version_text
+        .thumb_func
+hook_version_text:
+        mov     r5, sp
+        ldr     r1, =version_text_fmt
+        ldr     r2, =imp_g_app1_version
+        ldr     r2, [r2]                    @ &g_app1_version
+        ldr     r2, [r2]                    @ "5.52"
+        ldr     r12, =imp_VersionText_cont
+        ldr.w   pc, [r12]
+
+/* FUN_800f72d8's info screen line "APP1: %s (%s)": replaces the instructions from 0x800F7416
+   that load both strings, the format and the two arguments; continues at 0x800F7436 (bl). */
+        .global hook_app1_line
+        .thumb_func
+hook_app1_line:
+        ldr     r1, =imp_g_app1_version
+        ldr     r1, [r1]
+        ldr     r1, [r1]                    @ "5.52"
+        ldr     r7, =imp_g_app1_build
+        ldr     r7, [r7]
+        ldr     r7, [r7]                    @ the build hash
+        ldr     r0, [r6]
+        ldr     r3, =app1_line_fmt
+        str     r1, [sp]
+        movs    r1, #1
+        movs    r2, #3
+        str     r7, [sp, #4]
+        ldr     r12, =imp_App1Line_cont
+        ldr.w   pc, [r12]
+
+        .ltorg
+
+        .section .rodata.str.version, "a"
+        .global version_text_fmt, app1_line_fmt
+version_text_fmt:
+        .ascii  "Version: %s+jam-tricks-v", JAM_TRICKS_VERSION
+        .byte   0
+app1_line_fmt:
+        .ascii  "APP1: %s+jam-tricks-v", JAM_TRICKS_VERSION, " (%s)"
+        .byte   0

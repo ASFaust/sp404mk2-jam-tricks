@@ -63,8 +63,14 @@ SCATTER_ENTRIES = 12
 SCATTER_COPY = 0x600800E4               # __scatterload_copy: 16-byte blocks, then words
 SCATTER_TABLE_NEW = 0x60307F00
 
+# This release of the patches. Shown after Roland's version on the device (hooks.S) and appended
+# to every image, so the web patcher can refuse an image it already patched.
+JAM_TRICKS_VERSION = "1.0"
+MARKER = f"+jam-tricks-v{JAM_TRICKS_VERSION}".encode()
+
 CFLAGS = ["-mcpu=cortex-m7", "-mthumb", "-mfloat-abi=hard", "-mfpu=fpv5-d16", "-O2",
-          "-ffreestanding", "-fno-builtin", "-nostdlib", "-Wall", "-Wextra", "-Werror"]
+          "-ffreestanding", "-fno-builtin", "-nostdlib", "-Wall", "-Wextra", "-Werror",
+          f'-DJAM_TRICKS_VERSION="{JAM_TRICKS_VERSION}"']
 
 
 @dataclass
@@ -301,6 +307,27 @@ def cpu_meter(sym):
 CPAGE_HOST_ID = 93
 
 
+def version_mark(sym):
+    """'+jam-tricks-v1.0' after Roland's version on both screens that show it (hooks.S). Part
+    of every patch with a payload; patches without one have no code to put it there."""
+    return [
+        (0x8014B13E, bytes.fromhex("47f220606d46c8f22e00"),
+         bytes.fromhex("dff804f000bf") + word(sym["hook_version_text"] | 1),
+         "'Version: %s' (FUN_8014b120): 'movw r0; mov r5, sp; movt r0' -> 'ldr.w pc, [pc, #4]' + "
+         "nop + address of hook_version_text (Jam Tricks version after Roland's)"),
+        (0x800F7416, bytes.fromhex("47f2206146f25002c8f2"),
+         bytes.fromhex("dff804f000bf") + word(sym["hook_app1_line"] | 1),
+         "'APP1: %s (%s)' (FUN_800f72d8): 'movw r1; movw r2; movt r1' -> 'ldr.w pc, [pc, #4]' + "
+         "nop + address of hook_app1_line (Jam Tricks version after Roland's)"),
+    ]
+
+
+def patch_changes(p, sym):
+    """The changes patch p makes, with the version mark if it has a payload"""
+    changes = p.changes(sym) if callable(p.changes) else p.changes
+    return changes + version_mark(sym) if p.payload else changes
+
+
 def custom_pages(sym):
     return [
         (0x801F8F74 + 16 * CPAGE_HOST_ID, word(0x8023B58C), word(sym["cpage_host_slot"]),
@@ -528,8 +555,7 @@ def build(ids=None, log=print):
         log(f"[{p.id}] {p.title}")
         if p.warning:
             log(f"  WARNING: {p.warning}")
-        changes = p.changes(syms) if callable(p.changes) else p.changes
-        for addr, old, new, why in changes:
+        for addr, old, new, why in patch_changes(p, syms):
             off = file_offset(addr)
             found = bytes(img[off:off + len(old)])
             if len(old) != len(new):
@@ -542,8 +568,8 @@ def build(ids=None, log=print):
             img[off:off + len(new)] = new
             applied[addr] = (new, p.id)
             log(f"  {addr:#010x} (file {off:#08x}): {old.hex()} -> {new.hex()}  {why}")
-    log(f"{len(selected)} patch(es) applied")
-    return bytes(img)
+    log(f"{len(selected)} patch(es) applied, Jam Tricks v{JAM_TRICKS_VERSION}")
+    return bytes(img) + MARKER
 
 
 def main(argv):

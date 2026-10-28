@@ -87,6 +87,18 @@ export async function sha256(bytes) {
   return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// 'Jam Tricks v1.0' (or 'an earlier Jam Tricks') if this file came out of the patcher, else null.
+// Every image ends with the marker (make_image.py MARKER); images from before the marker are
+// known by the payload's import table.
+export function alreadyPatched(bytes, data) {
+  const tail = new TextDecoder('latin1').decode(bytes.subarray(Math.max(0, bytes.length - 32)));
+  const m = tail.match(/\+jam-tricks-v([0-9.]+)$/);
+  if (m) return `Jam Tricks v${m[1]}`;
+  const o = data.payload.offset;
+  if (bytes.length >= o + 8 && u32(bytes, o) === 0x31504D49) return 'an earlier Jam Tricks';
+  return null;
+}
+
 // The firmware entry of patches.json this file is, or null
 export async function identify(bytes, data) {
   const hash = await sha256(bytes);
@@ -156,7 +168,11 @@ export function applyPatches(original, data, ids) {
     img.set(now, c.offset);
     applied.set(c.offset, c.new);
   }
-  return img;
+  const marker = new TextEncoder().encode(data.marker);
+  const out = new Uint8Array(img.length + marker.length);
+  out.set(img, 0);
+  out.set(marker, img.length);
+  return out;
 }
 
 // --- other versions ----------------------------------------------------------------------
@@ -277,7 +293,7 @@ function foundValue(img, regions, c, s) {
 function findAnchors(img, regions, rules) {
   const found = {}, missing = {};
   for (const r of rules) {
-    const base = r.from ?? r.load ?? r.wordof;
+    const base = r.from ?? r.load ?? r.wordof ?? r.veneer;
     if (base !== undefined && !(base in found)) { missing[r.name] = `needs ${base}`; continue; }
     if (r.from !== undefined) {
       found[r.name] = (found[base] + r.add) >>> 0;
@@ -292,6 +308,19 @@ function findAnchors(img, regions, rules) {
       }
       if (hits.length === 1) found[r.name] = hits[0];
       else missing[r.name] = `${hits.length} words hold ${addrHex(want)}`;
+    } else if (r.veneer !== undefined) {
+      // 'movw ip, #lo; movt ip, #hi; bx ip'
+      const want = (found[base] + (r.add || 0)) >>> 0, hits = [];
+      for (const g of regions) {
+        for (let o = g.fo; o + 10 <= g.fo + g.size; o += 2) {
+          const w1 = u16(img, o), w2 = u16(img, o + 2), t1 = u16(img, o + 4), t2 = u16(img, o + 6);
+          if ((w1 & 0xFBF0) !== 0xF240 || (w2 & 0x8F00) !== 0x0C00 || (t1 & 0xFBF0) !== 0xF2C0 ||
+              (t2 & 0x8F00) !== 0x0C00 || u16(img, o + 8) !== 0x4760) continue;
+          if (movwImm(t1, t2) * 0x10000 + movwImm(w1, w2) === want) hits.push(o - g.fo + g.rt);
+        }
+      }
+      if (hits.length === 1) found[r.name] = hits[0];
+      else missing[r.name] = `${hits.length} stubs jump to ${addrHex(want)}`;
     } else {
       const values = new Set();
       for (const c of r.find) {
@@ -370,11 +399,12 @@ function payloadSetup(img, table, data, size) {
 // Returns the changes for that (none so far in any release); throws if the range isn't free.
 const REGION9 = 0x83FF0000, SKIPBACK_SIZE = 0x740000;
 
-function skipbackChanges(img, table, payloadRam) {
-  // Every movw/movt pair in Roland's code, decoded in instruction order (anchors.py _scan)
-  const pairs = new Map();               // value -> [{w, t}] (file offsets of movw, movt)
-  const literals = [];                   // [{value, at}] words loaded by 'ldr rd, [pc, #n]'
-  for (const g of table.regions) {
+// What Roland's code builds and loads, decoded in instruction order (anchors.py _scan):
+// {pairs: value -> [{w, t}] (file offsets of a movw/movt pair), literals: [{value, at}] (the words
+// pc-relative loads read: ldr, ldrb/h, ldrsb/h, ldrd, vldr; at their runtime address)}
+function scanCode(img, regions) {
+  const pairs = new Map(), literals = [];
+  for (const g of regions) {
     const movw = {};
     // A raw word scan would read instruction bytes (e8bd...) as addresses: take only the words
     // pc-relative loads read
@@ -390,8 +420,11 @@ function skipbackChanges(img, table, payloadRam) {
         continue;
       }
       const rd = h2 >> 8 & 0xF;
-      if ((h1 & 0xFF7F) === 0xF85F) {
+      if ((h1 & 0xFE5F) === 0xF81F && (h1 & 0x60) !== 0x60 && (h2 & 0xF000) !== 0xF000) {   // ldr(b/h/sb/sh).w rt, [pc, #n]
         literal(o, (h2 & 0xFFF) * (h1 & 0x80 ? 1 : -1));
+      } else if ((h1 & 0xFF7F) === 0xE95F || ((h1 & 0xFF3F) === 0xED1F && (h2 & 0x0E00) === 0x0A00)) {  // ldrd, vldr
+        literal(o, (h2 & 0xFF) * 4 * (h1 & 0x80 ? 1 : -1));
+        if ((h1 & 0xFF7F) === 0xE95F || h2 & 0x100) literal(o, (h2 & 0xFF) * 4 * (h1 & 0x80 ? 1 : -1) + 4);  // 8 bytes
       } else if ((h1 & 0xFBF0) === 0xF240 && !(h2 & 0x8000)) {
         movw[rd] = { lo: movwImm(h1, h2), w: o };
       } else if ((h1 & 0xFBF0) === 0xF2C0 && !(h2 & 0x8000) && movw[rd] && o - movw[rd].w <= 32) {
@@ -403,6 +436,11 @@ function skipbackChanges(img, table, payloadRam) {
       o += 4;
     }
   }
+  return { pairs, literals };
+}
+
+function skipbackChanges(img, table, payloadRam, code) {
+  const { pairs, literals } = code;
 
   // The buffer ends within 1 MB under region 9 in every release (an older one has another pair
   // of addresses 0x740000 apart, far lower)
@@ -455,9 +493,10 @@ export function resolve(original, data) {
   padded.set(original, 0);
   padded.set(payloadBytes, data.payload.offset);
 
+  const code = scanCode(original, table.regions);
   let shrink = [], ramProblem = null;
   try {
-    shrink = skipbackChanges(original, table, r.payload_ram);
+    shrink = skipbackChanges(original, table, r.payload_ram, code);
   } catch (e) {
     ramProblem = `payload RAM: ${e.message}`;
   }
@@ -478,6 +517,9 @@ export function resolve(original, data) {
         if (old.some((b, i) => b !== null && b !== have[i])) {
           throw new Error(`at ${addrHex(at)} the firmware has ${hex(have)}`);
         }
+        // Zeros we put code or an address into must be padding, not a constant Roland's code loads
+        const read = old.every(b => b === 0) && code.literals.find(l => l.at + 4 > at && l.at < at + old.length);
+        if (read) throw new Error(`the zeros at ${addrHex(at)} are a constant Roland's code reads`);
         changes.push({ offset: off, old: hex(have), new: hex(now), why: t.why });
       } catch (e) {
         problems.push(`${t.why}: ${e.message}`);
@@ -488,6 +530,7 @@ export function resolve(original, data) {
   }
   const plan = {
     firmware: [],
+    marker: data.marker,
     payload: { offset: data.payload.offset, imports: imp, bytes: payloadBytes },
     payload_setup: [...payloadSetup(original, table, data, payloadBytes.length), ...shrink],
     patches,

@@ -15,6 +15,8 @@ Anchors name an address and say how to find it:
   from    another anchor + add (a place inside a found function).
   wordof  the address of the only aligned word in Roland's code regions that holds another
           anchor + add (a vtable slot).
+  veneer  the address of the only 'movw ip; movt ip; bx ip' stub that jumps to another anchor
+          + add (the stubs SDRAM code uses to reach ITCM).
   load    the word stored at another anchor (a handler slot's handler).
 
 Patterns are masked where releases differ although the code is the same: bl and b.w offsets,
@@ -212,16 +214,17 @@ def spread(offsets, n):
     return chosen[:n * 3]
 
 
-def find_rules(fw, value, span=2, name="", refer=0):
+def find_rules(fw, value, span=2, name="", refer=0, shapes=((1, 1), (1, 4), (0, 1))):
     """'find' candidates for an address: at it (if it is in the image) and at code referring
     to it (or to it + refer). Raises if there is none."""
     out = []
     at = file_offset(value & ~1)
     if refer:
         return [dict(c, add=c["add"] - refer) for c in find_rules(fw, value + refer, 0, name)
-                if c["how"] != "at"] or find_rules(fw, value, span, name)
+                if c["how"] != "at"] or find_rules(fw, value, span, name, shapes=shapes)
     if at is not None:
-        for shape in ((1, 1), (1, 4)):
+        # around, mostly before, and only from the site on (survives changes in the code before)
+        for shape in shapes:
             c = fw.candidate(at, span, "at", value - runtime(at), shape=shape)
             if c and c not in out:
                 out.append(c)
@@ -286,6 +289,8 @@ def read_imports():
 IMPORT_RULES = {
     "Voice_SetParam_cont": {"from": "Voice_SetParam", "add": 8},
     "Audio_RxHandler_cont": {"from": "0001CA80", "add": 0xF},
+    "VersionText_cont": {"from": "8014B13E", "add": 0xF},
+    "App1Line_cont": {"from": "800F7416", "add": 0x21},
     # Three page handlers are identical apart from their (masked) addresses: take page 93's
     # from its record instead.
     "Page93_Handle": {"load": "slot_Page93_Handle"},
@@ -308,10 +313,17 @@ EXTRA = {
     "page_record_93": (0x801F9544, {"from": "page_records", "add": 16 * 93}),
     "slot_Page93_Handle": (0x8023B58C, {"load": "page_record_93"}),
     "g_rec_ctrl": (0x82E0E71C, None),
+    # VARI Plus's two stubs: their neighbours jump to ITCM addresses that change every release
+    "800D2E2E": (0x800D2E2E, {"veneer": "Resampler_Stereo"}),
+    "800D2E38": (0x800D2E38, {"veneer": "Resampler_Mono"}),
     "ParamGetRange_table": (0x800D3604, None),       # tbh table after 'tbh [pc, r1, lsl #1]'
     "ParamGetRange_vari": (0x800D3840, None),        # the case shared by VARI (0xF6)
     "ParamGetRange_pitch": (0x800D38C8, None),       # the case of chromatic pitch (0x9B) and PITCH
 }
+
+# Sites found only by the bytes from the site on: padding between functions, where the function
+# before is unrelated (v5.0x has other functions there, one of them with the same tail)
+FORWARD_ONLY = {0x800D5784, 0x800D593C}
 
 # Bytes each site's pattern must cover beyond its own change (code our new bytes rely on)
 SPANS = {
@@ -359,6 +371,9 @@ TEMPLATES = {
     0x800A2C98: {"at": ["Voice_SetParam", -1], "new": jump_via_word},
     # the movw/movt must build this release's g_param_store: audio_rx_orig loads it from the imports
     0x0001CA80: {"old": [{"hex": "f0b581b00446"}, {"mov32": [0, ["g_param_store", 0]]}], "new": jump_via_word},
+    # version mark: 'ldr.w pc, [pc, #4]', nop, then the word (aligned); the movw/movt are replaced
+    0x8014B13E: {"old": "mask", "new": lambda old, new: [{"ldrpc": ["@", 6]}, {"hex": new[4:].hex()}]},
+    0x800F7416: {"old": "mask", "new": lambda old, new: [{"ldrpc": ["@", 6]}, {"hex": new[4:].hex()}]},
 }
 
 
@@ -464,11 +479,12 @@ def make_anchors(fw, names, sites):
             return
         if name in IMPORT_RULES or name in EXTRA and EXTRA[name][1]:
             rule = dict(IMPORT_RULES.get(name) or EXTRA[name][1])
-            add(rule.get("from") or rule.get("wordof") or rule["load"])
+            add(rule.get("from") or rule.get("wordof") or rule.get("veneer") or rule["load"])
         else:
             a = vals[name]
             span = SPANS.get(a, sites.get(a, 2))
-            rule = {"find": find_rules(fw, a, span, name, REFER.get(name, 0))}
+            shapes = ((0, 1),) if a in FORWARD_ONLY else ((1, 1), (1, 4), (0, 1))
+            rule = {"find": find_rules(fw, a, span, name, REFER.get(name, 0), shapes)}
         rules[name] = rule
         check(fw, name, rule, rules, vals)
 
@@ -488,6 +504,13 @@ def check(fw, name, rule, rules, vals):
         hits = [runtime(o) for o in fw.words.get(want, [])]
         if len(hits) != 1:
             raise ValueError(f"{name}: {len(hits)} words hold {want:#x}")
+        got = hits[0]
+    elif "veneer" in rule:
+        want = vals[rule["veneer"]] + rule.get("add", 0)
+        hits = [runtime(o) for o in fw.pairs.get(want, []) if fw.movt_of[o] == o + 4
+                and fw.half(o + 2) >> 8 & 0xF == 12 and fw.half(o + 8) == 0x4760]
+        if len(hits) != 1:
+            raise ValueError(f"{name}: {len(hits)} stubs jump to {want:#x}")
         got = hits[0]
     else:
         for c in rule["find"]:

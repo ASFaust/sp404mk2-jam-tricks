@@ -18,6 +18,16 @@ working when Roland releases a new version with small changes.
   Chrome builds the same bytes as `resolve()` in Node for v5.51, v4.07 and v2.00, and the
   same as `make_image.py` for v5.52. The payload changes below (state out of region 9, `tuner`
   loading `g_param_store`) **need a device test on v5.52 before this goes to `main`.**
+- **Jam Tricks v1.0** (name of this release, user, 2026-10-28; `JAM_TRICKS_VERSION` in
+  `make_image.py`). Every image ends with the marker `+jam-tricks-v1.0`, and the page refuses
+  an input that has it (or, from before the marker, the payload's `IMP1` table at the payload
+  offset): patching a patched image again would stack changes nobody checked. Payload builds
+  also show the version after Roland's on both screens that print it (`hooks.S`,
+  `version_mark` in `make_image.py`): "Version: %s" (`FUN_8014b120`) and "APP1: %s (%s)"
+  (`FUN_800f72d8`, an info screen). Roland's string `5.52` stays: its first four characters
+  also go out as the firmware version over MIDI SysEx (`FUN_80115db8`) and USB
+  (`FUN_800f6f80`). Not yet seen on the device: which screens these are, and whether the
+  longer text fits.
 - **Live on the user's site (`main`), v5.52 only**, tested by the user: page `tools/sp404mk2-patcher/`
   (URL kept from before the name), section "Tools" on the home page. Offers `no-efx-timeout`,
   `scale-pads` / `scale-pads-wide`, `chrom-voices`, `vari4-stretch`, `tuner`.
@@ -39,8 +49,15 @@ working when Roland releases a new version with small changes.
   | v4.07 – v4.05 | 85–86 / 94 | `no-efx-timeout`, both scale pads, `chrom-voices` |
   | v4.04 and older | 43–81 / 94 | `no-efx-timeout` |
 
-  That was before the `tuner` fix in To do 5; now `tuner` resolves in v5.50, v5.51, v5.00 and
-  v5.01 too (in v4.x and older other anchors are missing). With the RAM check (To do 4) the
+  Now (2026-10-28, after the `tuner` fix in To do 5 and the rules below): v5.00 and later
+  get all six, v4.05–v4.07 all but `tuner`, v4.04 `no-efx-timeout`, both scale pads and
+  `vari4-stretch`, v3.x and v2.x `no-efx-timeout`. VARI Plus needed two kinds of rule: its two
+  resampler stubs (`movw/movt ip; bx ip` into ITCM) are found by their target (`veneer`
+  rule), since the stubs next to them jump elsewhere in every release; its two padding words
+  only by the bytes from the gap on (`FORWARD_ONLY`), since v5.0x orders the functions
+  before them differently. Zeros we write into must not be read by any pc-relative load
+  (`ldr`, `ldrb/h`, `ldrd`, `vldr`); in v4.05 the second gap follows a float pool, and the
+  nearest load (`vldr s2`) ends 4 bytes before it. With the RAM check (To do 4) the
   bench gives the same patches as the table. v2.00 and v2.01 have no skip-back buffer of
   0x740000 bytes under region 9, so their payload patches are refused (they lacked anchors
   anyway). (Correction to the measurement below: `TopScreen_KeyDown` is found in v5.51; only
